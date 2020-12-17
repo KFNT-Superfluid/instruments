@@ -8,13 +8,19 @@ Created on Thu Sep 17 12:56:38 2020
 class KS33210A:
     """Keysight KS33210A DC to 10 MHz signal generator."""
     
-    def __init__(self, rm, address):
+    def __init__(self, rm, address, Z='inf'):
         self.dev = rm.open_resource(address)
         self.dev.clear()
         print(self.dev.query('*IDN?'))
         self.dev.write("FUNC SIN") # set the function to sine
         self.dev.write("VOLT:UNIT VPP")
-        self.dev.write("OUTP:LOAD INF")
+        if Z == 'inf':
+            self.dev.write("OUTP:LOAD INF")
+        else:
+            self.dev.write("OUTP:LOAD 50")
+    
+    def function(self, function):
+        self.dev.write("FUNC {}".format(function.upper()))
     
     def close(self):
         self.dev.clear()
@@ -22,7 +28,10 @@ class KS33210A:
 
     def amplitude(self, value=None):
         if value is not None:
-            self.dev.write("VOLT {:.4f}".format(value))
+            if value < 0.01:
+                self.output(False)
+            else:
+                self.dev.write("VOLT {:.4f}".format(value))
         else:
             return self.dev.query("VOLT?")
     

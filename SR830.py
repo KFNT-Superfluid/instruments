@@ -5,6 +5,8 @@ Created on Thu Sep 17 13:09:58 2020
 @author: emil
 """
 
+import visa
+
 tcs = ["10u", "30u", "100u", "300u",
        "1m", "3m", "10m", "30m", "100m", "300m",
        "1", "3", "10", "30", "100", "300",
@@ -42,16 +44,26 @@ class SR830:
     """Stanford SR830 lockin."""
     
     def __init__(self, rm, address):
-        self.dev = rm.open_resource(address)
-        self.dev.clear()
-        print(self.dev.query('*IDN?'))
-        self.dev.write('HARM 1')
-        self.dev.write("FPOP 1,1")
-        self.dev.write("FPOP 2,1")
-        self.dev.write('ISRC 0') # set tje input conf to A
-        self.dev.write('IGND 0') # set the grounding to float
-        self.set_reference('external')
-        self.harmonic(1)
+        self.dev = rm.open_resource(address, access_mode=visa.constants.AccessModes.shared_lock)
+        self.locked=False
+    
+    def lock(self):
+        self.dev.lock()
+        self.locked=True
+    def unlock(self):
+        self.dev.unlock()
+        self.locked=False
+        
+    def get_aux(self, n):
+        return float(self.dev.query('OAUX? {}'.format(n)))
+    
+    def coupling(self, cpl):
+        if cpl.upper() == 'AC':
+            self.dev.write('ICPL 0')
+        elif cpl.upper() == 'DC':
+            self.dev.write('ICPL 1')
+        else:
+            raise RuntimeError("Unknown coupling {}, only DC or AC allowed".format(cpl))
     
     def set_reference(self, ref):
         if ref=='external':

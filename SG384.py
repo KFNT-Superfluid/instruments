@@ -5,15 +5,25 @@ Created on Thu Sep 17 16:15:46 2020
 @author: emil
 """
 
+import visa
+
 class SG384:
     """Stanford SG384 signal generator (up-to 4 GHz)"""
     
     def __init__(self, rm, address):
-        self.dev = rm.open_resource(address)
-        self.dev.clear()
-        print(self.dev.query('*IDN?'))
+        self.dev = rm.open_resource(address, access_mode=visa.constants.AccessModes.shared_lock)
+        self.locked=False
 
+    def lock(self):
+        self.dev.lock()
+        self.locked=True
+    def unlock(self):
+        self.dev.unlock()
+        self.locked=False
+    
     def close(self):
+        if self.locked:
+            self.unlock()
         self.dev.clear()
         self.dev.close()
         
@@ -25,7 +35,12 @@ class SG384:
     def frequency(self, freq=None):
         if freq is None:
             return float(self.dev.query('FREQ?'))
-        self.dev.write('FREQ {:.9f}'.format(freq))
+        self.dev.write('FREQ {:.0f}'.format(freq))
+    
+    def phase(self, phase=None):
+        if phase is None:
+            return float(self.dev.query('PHAS?'))
+        self.dev.write('PHAS {:.0f}'.format(phase))
     
     def power(self, ampl=None):
         if ampl is None:
@@ -51,6 +66,11 @@ class SG384:
         if status is None:
             return self.dev.query('ENBR?')
         self.dev.write('ENBR {}'.format(1 if status else 0))
+    
+    def enableHF(self, status=None):
+        if status is None:
+            return self.dev.query('ENBH?')
+        self.dev.write('ENBH {}'.format(1 if status else 0))
 
 
 if __name__ == '__main__':

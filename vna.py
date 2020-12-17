@@ -12,7 +12,7 @@ import time
 class VNA:
     """Some basic VNA functions. Most of the code stolen from Vaisakh's/Robyn's code."""
 
-    def __init__(self, visa_rm, address="USB0::0x2A8D::0x5D01::MY54101196::0::INSTR"):
+    def __init__(self, visa_rm, address="USB0::0x2A8D::0x5D01::MY54301840::INSTR"):
         self.address = address
         self.rm = visa_rm
         self.vna = visa_rm.open_resource(address)
@@ -21,6 +21,7 @@ class VNA:
         self.vna.timeout=20*60*1000
     
     def close(self):
+        self.vna.write(":INIT1:CONT OFF")
         self.vna.clear()
         self.vna.close()
         
@@ -55,12 +56,24 @@ class VNA:
             print('Asking for power')
             return float(self.vna.query(':SOUR1:POW:LEV?'))
         self.vna.write(':SOUR1:POW:LEV {:.3f}'.format(set_power))
+    
+    def output_off(self):
+        self.vna.write(':INIT1:CONT OFF')
 
-    def sweep(self, start, stop, num_points=10001, bw=10e3):
+    def sweep(self, start, stop, num_points=10001, bw=10e3, avg=None):
         self.vna.write(":SENS1:FREQ:STAR " +str(start))
         self.vna.write(":SENS1:FREQ:STOP " +str(stop))
         self.vna.write(":SENS1:SWE:POIN " +str(num_points))
         self.vna.write(":SENS1:BWID " +str(bw))
+        
+        if avg is None:
+            # print("Not using averaging.")
+            self.vna.write(":SENS1:AVER OFF")
+        else:
+            print("Averging {} times.".format(avg))
+            self.vna.write(":SENS1:AVER ON")
+            self.vna.write(":SENS1:AVER:COUN {}".format(avg))
+            self.vna.write(":SENS1:AVER:CLE")
         
         #set trigger to cts
         self.vna.write(":INIT1:CONT ON")
@@ -93,11 +106,24 @@ class VNA:
         data = np.column_stack((freq,x,y))
         return data
     
-    def sweep_cs(self, center, span, num_points=10001, bw=10e3):
-        return self.sweep(center-span/2, center+span/2, num_points, bw)
+    def sweep_cs(self, center, span, num_points=10001, bw=10e3, avg=None):
+        return self.sweep(center-span/2, center+span/2, num_points, bw, avg)
 
 if __name__ == '__main__':
+    import matplotlib.pyplot as plt
     rm = visa.ResourceManager('C:\\Program Files (x86)\\IVI Foundation\\VISA\\WinNT\\agvisa\\agbin\\visa32.dll')
+    # rm = visa.ResourceManager()
     vna = VNA(rm)
-    data = vna.sweep(1e9, 3e9)
+    vna.power(-10)
+    # data = vna.sweep(15.48e9, 15.56e9, bw=100, num_points=1000)
+    data = vna.sweep(5.35e9, 5.37e9, bw=1000, num_points=10000)
+    vna.close()
+    rm.close()
     
+    # plt.close('all')
+    fig, ax = plt.subplots(1,1)
+    f = data[:,0]
+    x = data[:,1]
+    y = data[:,2]
+    r = np.sqrt(x**2 + y**2)
+    ax.semilogy(f, r)

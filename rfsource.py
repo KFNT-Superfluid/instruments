@@ -25,7 +25,7 @@ class BNC865:
         """Set or query the frequency in Hz."""
         if set_freq is None:
             return float(self.dev.query(':FREQ?'))
-        self.dev.write(':FREQ {:.3f}'.format(set_freq))
+        self.dev.write(':FREQ {:.0f}'.format(set_freq))
     
     def output(self, set_status=None):
         """Set or query the output status."""
@@ -42,6 +42,19 @@ class BNC865:
         if set_power is None:
             return float(self.dev.query(':POW:LEV?'))
         self.dev.write(':POW:LEV {:.3f}'.format(set_power))
+        
+    def am(self, state=None, sens=0):
+        if state is None:
+            print(self.dev.query(':AM:STAT?'))
+            print(self.dev.query(':AM:SOUR?'))
+            print(self.dev.query(":AM:SENS?"))
+            return
+        if state:
+            self.dev.write(':AM:SOUR EXT')
+            self.dev.write(':AM:SENS {:.2f}'.format(sens))
+            self.dev.write(':AM:STAT 1')
+        else:
+            self.dev.write(':AM:STAT 0')
         
 
 if __name__ == '__main__':
