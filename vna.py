@@ -21,7 +21,7 @@ class VNA:
         self.vna.timeout=20*60*1000
     
     def close(self):
-        self.vna.write(":INIT1:CONT OFF")
+        # self.vna.write(":INIT1:CONT OFF")
         self.vna.clear()
         self.vna.close()
         
@@ -116,7 +116,10 @@ if __name__ == '__main__':
     vna = VNA(rm)
     vna.power(-10)
     # data = vna.sweep(15.48e9, 15.56e9, bw=100, num_points=1000)
-    data = vna.sweep(5.35e9, 5.37e9, bw=1000, num_points=10000)
+    # data = vna.sweep(5.35e9, 5.37e9, bw=1000, num_points=10000)
+    rff = 5.364390e9
+    mechf = 1000
+    data = vna.sweep_cs(rff+mechf, 0, bw=1000, num_points=10)
     vna.close()
     rm.close()
     

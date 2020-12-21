@@ -46,7 +46,7 @@ if __name__ == '__main__':
     
     rm = visa.ResourceManager()
     lockin = SR830(rm, 'GPIB0::1::INSTR')
-    rate = 16384
+    rate = 32768
     samples = int(rate*64)
     daq = DAQcard(channels=['ai0'], rate=rate, samples=samples)
     # fdemod = 4e3

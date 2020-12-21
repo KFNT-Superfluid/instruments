@@ -35,7 +35,7 @@ def code_to_value(code):
 def find_best_sens(val):
     for scode in senss:
         sens = code_to_value(scode)
-        if sens > val:
+        if sens > 1.5*val:
             return scode
     return "1"
     
@@ -47,8 +47,11 @@ class SR830:
         self.dev = rm.open_resource(address, access_mode=visa.constants.AccessModes.shared_lock)
         self.locked=False
     
-    def lock(self):
-        self.dev.lock()
+    def clear(self):
+        self.dev.clear()
+    
+    def lock(self, timeout=5000):
+        self.dev.lock(timeout=timeout)
         self.locked=True
     def unlock(self):
         self.dev.unlock()
@@ -64,6 +67,14 @@ class SR830:
             self.dev.write('ICPL 1')
         else:
             raise RuntimeError("Unknown coupling {}, only DC or AC allowed".format(cpl))
+    
+    def set_reserve(self, res):
+        reserves = {'HIGH': 0, 'NORMAL': 1, 'LOW': 2}
+        try:
+            self.dev.write("RMOD {}".format(reserves[res.upper()]))
+        except KeyError:
+            print("Only 'high', 'normal' and 'low' reserves are available.")
+            raise
     
     def set_reference(self, ref):
         if ref=='external':
@@ -84,6 +95,9 @@ class SR830:
     
     def set_sensitivity(self, sens):
         self.dev.write("SENS {}".format(sensitivities[sens]))
+    
+    def get_sensitivity(self):
+        return code_to_value(senss[int(self.dev.query("SENS?"))])
     
     def set_slope(self, slope):
         self.dev.write("OFSL {}".format(lpfslopes[slope]))
@@ -108,12 +122,17 @@ class SR830:
         y = float(ystr)
         return x, y
     
-    def auto_sens(self, maxval):
+    def auto_sens(self, maxval, do_set=True):
         sens = find_best_sens(maxval)
-        self.set_sensitivity(sens)
-        return sens
+        if do_set:
+            self.set_sensitivity(sens)
+        return code_to_value(sens)
+    
+    def overloadp(self):
+        resp = int(self.dev.query('LIAS? 2'))
+        self.dev.clear()
+        return bool(resp)
     
     def close(self):
-        self.dev.clear()
         self.dev.close()
     

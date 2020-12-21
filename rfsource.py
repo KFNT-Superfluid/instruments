@@ -43,7 +43,7 @@ class BNC865:
             return float(self.dev.query(':POW:LEV?'))
         self.dev.write(':POW:LEV {:.3f}'.format(set_power))
         
-    def am(self, state=None, sens=0):
+    def am(self, state=None, sens=0.1):
         if state is None:
             print(self.dev.query(':AM:STAT?'))
             print(self.dev.query(':AM:SOUR?'))

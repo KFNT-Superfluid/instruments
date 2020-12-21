@@ -13,16 +13,29 @@ class DS345:
         self.dev.clear()
         print(self.dev.query('*IDN?'))
         self.dev.write("FUNC 0") # set the function to sine
+        self.output_amplitude = 0
+        self.output_state = False
     
     def close(self):
         self.dev.clear()
         self.dev.close()
+    
+    def output(self, state):
+        if state:
+            self.amplitude(self.output_amplitude)
+            self.output_state = True
+        else:
+            self.amplitude(0)
+            self.output_state = False
 
     def amplitude(self, value=None, unit='VP'):
         if value is not None:
             if unit not in ['VP', 'VR', 'DB']:
                 raise RuntimeError("Unknown amplitude unit {}".format(unit))
             self.dev.write("AMPL {:.4f} {}".format(value, unit))
+            self.output_amplitude=value
+            if value > 0:
+                self.output_state = True
         else:
             return self.dev.query("AMPL?")
     
