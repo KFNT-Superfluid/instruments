@@ -41,7 +41,7 @@ class DS345:
     
     def frequency(self, freq=None):
         if freq is not None:
-            self.dev.write("FREQ {:.9f}".format(freq))
+            self.dev.write("FREQ {:.3f}".format(freq))
         else:
             return self.dev.query("FREQ?")
 

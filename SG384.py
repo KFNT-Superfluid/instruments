@@ -35,7 +35,7 @@ class SG384:
     def frequency(self, freq=None):
         if freq is None:
             return float(self.dev.query('FREQ?'))
-        self.dev.write('FREQ {:.0f}'.format(freq))
+        self.dev.write('FREQ {:.3f}'.format(freq))
     
     def phase(self, phase=None):
         if phase is None:
@@ -45,7 +45,7 @@ class SG384:
     def power(self, ampl=None):
         if ampl is None:
             return float(self.dev.query('AMPR?'))
-        self.dev.write('AMPR {:.2f}'.format(ampl))
+        self.dev.write('AMPH {:.2f}'.format(ampl))
     
     def BNCamp(self, ampl=None):
         """Set the amplitude in peak-to-peak voltage."""

@@ -21,7 +21,7 @@ class VNA:
         self.vna.timeout=20*60*1000
     
     def close(self):
-        # self.vna.write(":INIT1:CONT OFF")
+        self.output_off()
         self.vna.clear()
         self.vna.close()
         
@@ -111,15 +111,15 @@ class VNA:
 
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
-    rm = visa.ResourceManager('C:\\Program Files (x86)\\IVI Foundation\\VISA\\WinNT\\agvisa\\agbin\\visa32.dll')
+    rm = visa.ResourceManager()
     # rm = visa.ResourceManager()
-    vna = VNA(rm)
+    vna = VNA(rm, 'USB0::0x0957::0x1509::MY51200747::INSTR')
     vna.power(-10)
     # data = vna.sweep(15.48e9, 15.56e9, bw=100, num_points=1000)
     # data = vna.sweep(5.35e9, 5.37e9, bw=1000, num_points=10000)
-    rff = 5.364390e9
-    mechf = 1000
-    data = vna.sweep_cs(rff+mechf, 0, bw=1000, num_points=10)
+    rff = 5.35e9
+    span = 50e6
+    data = vna.sweep(5.3e9, 5.32e9, bw=1000, num_points=1000)
     vna.close()
     rm.close()
     

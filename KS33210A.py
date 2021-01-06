@@ -18,6 +18,7 @@ class KS33210A:
             self.dev.write("OUTP:LOAD INF")
         else:
             self.dev.write("OUTP:LOAD 50")
+        self.output_state = False
     
     def function(self, function):
         self.dev.write("FUNC {}".format(function.upper()))
@@ -47,7 +48,10 @@ class KS33210A:
             return self.dev.query("FREQ?")
     
     def output(self, state=False):
+        toggled = self.output_state ^ state
         self.dev.write("OUTP {}".format('ON' if state else 'OFF'))
+        self.output_state = state
+        return toggled
 
 if __name__ == '__main__':
     import visa

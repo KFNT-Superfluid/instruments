@@ -40,13 +40,13 @@ class DAQcard:
 
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
-    from SR830 import SR830
-    from rfsource import BNC865
-    import visa
+    # from SR830 import SR830
+    # from rfsource import BNC865
+    # import visa
     
-    rm = visa.ResourceManager()
-    lockin = SR830(rm, 'GPIB0::1::INSTR')
-    rate = 32768
+    # rm = visa.ResourceManager()
+    # lockin = SR830(rm, 'GPIB0::1::INSTR')
+    rate = 16384
     samples = int(rate*64)
     daq = DAQcard(channels=['ai0'], rate=rate, samples=samples)
     # fdemod = 4e3
@@ -68,16 +68,14 @@ if __name__ == '__main__':
         
         
         freqs = np.fft.rfftfreq(samples, 1/rate)
-        freqs = np.fft.fftshift(freqs)# + fdemod
         
         avgresp = 0
-        N = 10
+        N = 5
         for k in range(N):
             print(k)
             data1 = daq.measure()
             resp = np.fft.rfft(data1)#data1[0, :] + 1j*data1[1, :])
-            resp = np.fft.fftshift(resp)
-            avgresp += np.abs(resp)
+            avgresp += abs(resp)
             # ax.plot(freqs, np.abs(avgresp)/(k+1))
         avgresp = avgresp/N
         ax.semilogy(freqs, np.abs(avgresp))
