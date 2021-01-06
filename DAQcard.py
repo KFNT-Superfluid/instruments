@@ -9,7 +9,8 @@ import nidaqmx
 import numpy as np
 
 class DAQcard:
-    def __init__(self, channels, rate, samples, devname=None, max_val=10, min_val=-10):
+    def __init__(self, channels, rate, samples, devname=None, max_val=10, min_val=-10,
+                 outputs=None, timeout=None):
         if devname is None:
             self.name = nidaqmx.system.system.System().devices[0].name
         else:
@@ -17,13 +18,33 @@ class DAQcard:
         self.channels = channels
         self.rate = rate
         self.samples = samples
+        if timeout is None:
+            self.timeout = 1.1*self.samples/self.rate
+        else:
+            self.timeout = timeout
         self.task = nidaqmx.Task()
         for ch in self.channels:
             self.task.ai_channels.add_ai_voltage_chan("{}/{}".format(self.name, ch), 
                                                       min_val=min_val, max_val=max_val,
                                                       terminal_config=nidaqmx.constants.TerminalConfiguration.RSE)
         # measure in the default finite samples mode
-        self.task.timing.cfg_samp_clk_timing(rate=rate, samps_per_chan=samples)
+        self.task.timing.cfg_samp_clk_timing(rate=rate, samps_per_chan=samples,
+                                             sample_mode=nidaqmx.constants.AcquisitionType.FINITE)
+        
+        if outputs is not None:
+            self.write_task = nidaqmx.Task()
+            ao, data = outputs
+            self.write_task.ao_channels.add_ao_voltage_chan("{}/{}".format(self.name, ao))
+            self.write_task.timing.cfg_samp_clk_timing(rate=rate, samps_per_chan=len(data),
+                                                       sample_mode=nidaqmx.constants.AcquisitionType.FINITE)
+            self.write_task.write(data, auto_start=False, timeout=self.timeout)
+            #configure the write to trigger on read start trigger
+            self.write_task \
+                .triggers \
+                .start_trigger \
+                .cfg_dig_edge_start_trig(r"/{}/ai/StartTrigger".format(self.name))
+        else:
+            self.write_task = None
     
     def start(self):
         self.task.start()
@@ -31,56 +52,54 @@ class DAQcard:
         self.task.stop()
     def close(self):
         self.task.close()
+        if self.write_task is not None:
+            self.write_task.close()
     
-    def measure(self, timeout=512):
-        self.start()
-        data = self.task.read(nidaqmx.constants.READ_ALL_AVAILABLE, timeout=timeout)
+    def write_measure(self):
+        self.write_task.start()
+        self.task.start()
+        data = self.task.read(nidaqmx.constants.READ_ALL_AVAILABLE, timeout=self.timeout)
+        self.task.stop()
+        self.write_task.stop()
+        return data
+    
+    def measure(self):
+        self.start() #this also starts the writing if configured
+        data = self.task.read(nidaqmx.constants.READ_ALL_AVAILABLE, timeout=self.timeout)
         self.stop()
         return np.array(data)
 
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
-    # from SR830 import SR830
-    # from rfsource import BNC865
-    # import visa
-    
-    # rm = visa.ResourceManager()
-    # lockin = SR830(rm, 'GPIB0::1::INSTR')
+    plt.close('all')
+
     rate = 16384
-    samples = int(rate*64)
-    daq = DAQcard(channels=['ai0'], rate=rate, samples=samples)
-    # fdemod = 4e3
-    # lockin.lock()
-    # lockin.set_reference('internal')
-    # lockin.set_frequency(fdemod)
-    # lockin.set_timeconstant('100u')
-    # lockin.unlock()
-    # lockin.set_sensitivity('1m')
-    # rf = BNC865(rm, 'BNC845')
+    samples = int(rate*4)
+    output = np.ones(int(samples/2))
+    output[-1] = 0
+    # output[:int(samples/2)] = 1
+    
     try:
-        # rf.frequency(2.72356e9)
-        # rf.output(True)
-        # rf.power(-15)
-        # gen.frequency(fdemod)
-        
-        # plt.close('all')
+        daq = DAQcard(channels=['ai0'], rate=rate, samples=samples,
+                      outputs=('ao0', output))
+
         fig, ax = plt.subplots(1,1)
+        ax.plot(output)
+        for k in range(5):
+            data = daq.write_measure()
+            ax.plot(data)
         
+        # freqs = np.fft.rfftfreq(samples, 1/rate)
         
-        freqs = np.fft.rfftfreq(samples, 1/rate)
-        
-        avgresp = 0
-        N = 5
-        for k in range(N):
-            print(k)
-            data1 = daq.measure()
-            resp = np.fft.rfft(data1)#data1[0, :] + 1j*data1[1, :])
-            avgresp += abs(resp)
-            # ax.plot(freqs, np.abs(avgresp)/(k+1))
-        avgresp = avgresp/N
-        ax.semilogy(freqs, np.abs(avgresp))
+        # avgresp = 0
+        # N = 5
+        # for k in range(N):
+        #     print(k)
+        #     data1 = daq.measure()
+        #     resp = np.fft.rfft(data1)#data1[0, :] + 1j*data1[1, :])
+        #     avgresp += abs(resp)
+        #     # ax.plot(freqs, np.abs(avgresp)/(k+1))
+        # avgresp = avgresp/N
+        # ax.semilogy(freqs, np.abs(avgresp))
     finally:
         daq.close()
-        # rf.close()
-        # gen.close()
-        # rm.close()
