@@ -56,6 +56,12 @@ class SR830:
     def unlock(self):
         self.dev.unlock()
         self.locked=False
+    
+    def phase(self, phi=None):
+        if phi is None:
+            return float(self.dev.query('PHAS?'))
+        else:
+            self.dev.write('PHAS {:.3f}'.format(phi))
         
     def get_aux(self, n):
         return float(self.dev.query('OAUX? {}'.format(n)))
@@ -91,7 +97,9 @@ class SR830:
             self.dev.write('HARM {}'.format(harm))
     
     def set_timeconstant(self, tc):
+        print("Setting tc")
         self.dev.write("OFLT {}".format(time_constants[tc]))
+        print("OK")
     
     def set_sensitivity(self, sens):
         self.dev.write("SENS {}".format(sensitivities[sens]))
