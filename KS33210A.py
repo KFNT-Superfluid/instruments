@@ -6,14 +6,14 @@ Created on Thu Sep 17 12:56:38 2020
 """
 
 import numpy as np
+from .Instrument import Instrument
 
-class KS33210A:
+class KS33210A(Instrument):
     """Keysight KS33210A DC to 10 MHz signal generator."""
     
     def __init__(self, rm, address, Z='inf', initialize_state=True):
-        self.dev = rm.open_resource(address)
-        self.dev.clear()
-        print(self.dev.query('*IDN?'))
+        super().__init__(rm, address)
+        print(self.idn())
         if initialize_state:
             self.dev.write("FUNC SIN") # set the function to sine
             self.dev.write("VOLT:UNIT VPP")
@@ -27,10 +27,6 @@ class KS33210A:
         
     def function(self, function):
         self.dev.write("FUNC {}".format(function.upper()))
-    
-    def close(self):
-        self.dev.clear()
-        self.dev.close()
 
     def amplitude(self, value=None):
         if value is not None:
@@ -89,10 +85,3 @@ class KS33210A:
         else:
             self.dev.write("OUTP OFF")
             return False
-
-if __name__ == '__main__':
-    import visa
-    rm = visa.ResourceManager()
-    dev = KS33210A(rm, "33210A")
-    print(dev.amplitude())
-    print(dev.frequency())

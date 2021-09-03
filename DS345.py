@@ -5,20 +5,17 @@ Created on Thu Sep 17 12:56:38 2020
 @author: emil
 """
 
-class DS345:
+from .Instrument import Instrument
+
+class DS345(Instrument):
     """Stanford DS345 DC to 30 MHz signal generator."""
     
     def __init__(self, rm, address):
-        self.dev = rm.open_resource(address)
-        self.dev.clear()
+        super().__init__(rm, address)
         print(self.dev.query('*IDN?'))
         self.dev.write("FUNC 0") # set the function to sine
         self.output_amplitude = 0
         self.output_state = False
-    
-    def close(self):
-        self.dev.clear()
-        self.dev.close()
     
     def output(self, state):
         if state:
@@ -44,10 +41,3 @@ class DS345:
             self.dev.write("FREQ {:.3f}".format(freq))
         else:
             return self.dev.query("FREQ?")
-
-if __name__ == '__main__':
-    import visa
-    rm = visa.ResourceManager()
-    dev = DS345(rm, "GPIB0::2::INSTR")
-    print(dev.amplitude())
-    print(dev.frequency())

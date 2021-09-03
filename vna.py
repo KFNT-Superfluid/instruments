@@ -5,25 +5,21 @@ Created on Sat Aug  8 12:58:45 2020
 @author: ev
 """
 
-import visa
 import numpy as np
 import time
+from .Instrument import Instrument
 
-class VNA:
+class VNA(Instrument):
     """Some basic VNA functions. Most of the code stolen from Vaisakh's/Robyn's code."""
 
-    def __init__(self, visa_rm, address="USB0::0x2A8D::0x5D01::MY54301840::INSTR"):
-        self.address = address
-        self.rm = visa_rm
-        self.vna = visa_rm.open_resource(address)
-        self.vna.clear()
-        print(self.vna.query('*IDN?'))
+    def __init__(self, rm, address="USB0::0x2A8D::0x5D01::MY54301840::INSTR"):
+        super().__init__(rm, address)
+        print(self.idn())
         self.vna.timeout=20*60*1000
     
     def close(self):
         self.output_off()
-        self.vna.clear()
-        self.vna.close()
+        super().close()
         
     def setup(self, S='S11'):
         # set number of traces
@@ -108,25 +104,3 @@ class VNA:
     
     def sweep_cs(self, center, span, num_points=10001, bw=10e3, avg=None):
         return self.sweep(center-span/2, center+span/2, num_points, bw, avg)
-
-if __name__ == '__main__':
-    import matplotlib.pyplot as plt
-    rm = visa.ResourceManager()
-    # rm = visa.ResourceManager()
-    vna = VNA(rm, 'USB0::0x0957::0x1509::MY51200747::INSTR')
-    vna.power(-10)
-    # data = vna.sweep(15.48e9, 15.56e9, bw=100, num_points=1000)
-    # data = vna.sweep(5.35e9, 5.37e9, bw=1000, num_points=10000)
-    rff = 5.35e9
-    span = 50e6
-    data = vna.sweep(5.3e9, 5.32e9, bw=1000, num_points=1000)
-    vna.close()
-    rm.close()
-    
-    # plt.close('all')
-    fig, ax = plt.subplots(1,1)
-    f = data[:,0]
-    x = data[:,1]
-    y = data[:,2]
-    r = np.sqrt(x**2 + y**2)
-    ax.semilogy(f, r)

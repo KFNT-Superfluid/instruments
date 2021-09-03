@@ -5,27 +5,13 @@ Created on Thu Sep 17 16:15:46 2020
 @author: emil
 """
 
-import visa
+from .Instrument import Instrument
 
-class SG384:
+class SG384(Instrument):
     """Stanford SG384 signal generator (up-to 4 GHz)"""
     
     def __init__(self, rm, address):
-        self.dev = rm.open_resource(address, access_mode=visa.constants.AccessModes.shared_lock)
-        self.locked=False
-
-    def lock(self):
-        self.dev.lock()
-        self.locked=True
-    def unlock(self):
-        self.dev.unlock()
-        self.locked=False
-    
-    def close(self):
-        if self.locked:
-            self.unlock()
-        self.dev.clear()
-        self.dev.close()
+        super().__init__(rm, address)
         
     def output(self, outp=None):
         if outp is None:
@@ -71,14 +57,3 @@ class SG384:
         if status is None:
             return self.dev.query('ENBH?')
         self.dev.write('ENBH {}'.format(1 if status else 0))
-
-
-if __name__ == '__main__':
-    import visa
-    rm = visa.ResourceManager()
-    dev = SG384(rm, 'GPIB0::3::INSTR')
-    print(dev.output())
-    print(dev.frequency())
-    print(dev.power())
-    print(dev.BNCamp())
-    dev.close()

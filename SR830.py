@@ -5,7 +5,7 @@ Created on Thu Sep 17 13:09:58 2020
 @author: emil
 """
 
-import visa
+from .Instrument import Instrument
 
 tcs = ["10u", "30u", "100u", "300u",
        "1m", "3m", "10m", "30m", "100m", "300m",
@@ -40,23 +40,12 @@ def find_best_sens(val):
     return "1"
     
 
-class SR830:
+class SR830(Instrument):
     """Stanford SR830 lockin."""
     
     def __init__(self, rm, address):
-        self.dev = rm.open_resource(address, access_mode=visa.constants.AccessModes.shared_lock)
-        self.locked=False
-    
-    def clear(self):
-        self.dev.clear()
-    
-    def lock(self, timeout=5000):
-        self.dev.lock(timeout=timeout)
-        self.locked=True
-    def unlock(self):
-        self.dev.unlock()
-        self.locked=False
-    
+        super().__init__(rm, address)
+        
     def phase(self, phi=None):
         if phi is None:
             return float(self.dev.query('PHAS?'))
@@ -140,7 +129,4 @@ class SR830:
         resp = int(self.dev.query('LIAS? 2'))
         self.dev.clear()
         return bool(resp)
-    
-    def close(self):
-        self.dev.close()
     
