@@ -9,52 +9,56 @@ import nidaqmx
 import numpy as np
 
 class DAQcard:
-    def __init__(self, channels, rate, samples, devname=None, max_val=10, min_val=-10,
+    def __init__(self, channels=None, rate=None, samples=None, devname=None, max_val=10, min_val=-10,
                  outputs=None, timeout=None):
         if devname is None:
             self.name = nidaqmx.system.system.System().devices[0].name
         else:
             self.name = devname
-        self.channels = channels
-        self.rate = rate
-        self.samples = samples
-        if timeout is None:
-            self.timeout = 1.1*self.samples/self.rate
-        else:
-            self.timeout = timeout
-        self.task = nidaqmx.Task()
-        for ch in self.channels:
-            self.task.ai_channels.add_ai_voltage_chan("{}/{}".format(self.name, ch), 
-                                                      min_val=min_val, max_val=max_val,
-                                                      terminal_config=nidaqmx.constants.TerminalConfiguration.RSE)
-        # measure in the default finite samples mode
-        self.task.timing.cfg_samp_clk_timing(rate=rate, samps_per_chan=samples,
-                                             sample_mode=nidaqmx.constants.AcquisitionType.FINITE)
+        if (channels is not None) and (len(channels) > 0):
+            self.channels = channels
+            self.rate = rate
+            self.samples = samples
+            if timeout is None:
+                self.timeout = 1.1*self.samples/self.rate
+            else:
+                self.timeout = timeout
+            self.task = nidaqmx.Task()
+            for ch in self.channels:
+                self.task.ai_channels.add_ai_voltage_chan("{}/{}".format(self.name, ch), 
+                                                          min_val=min_val, max_val=max_val,
+                                                          terminal_config=nidaqmx.constants.TerminalConfiguration.RSE)
+            # measure in the default finite samples mode
+            self.task.timing.cfg_samp_clk_timing(rate=rate, samps_per_chan=samples,
+                                                 sample_mode=nidaqmx.constants.AcquisitionType.FINITE)
         
         if outputs is not None:
             self.write_task = nidaqmx.Task()
-            if isinstance(outputs, tuple):
-                _outputs = [outputs]
+            if isinstance(outputs[0], tuple):
+                to_write = []
+                for ao, data in outputs:
+                    print("Setting up DAQ ", ao)
+                    self.write_task.ao_channels.add_ao_voltage_chan("{}/{}".format(self.name, ao),
+                                                                    min_val=min_val, max_val=max_val)
+                    to_write.append(data)
+                    
+                self.write_task.timing.cfg_samp_clk_timing(rate=rate, samps_per_chan=len(data),
+                                                           sample_mode=nidaqmx.constants.AcquisitionType.FINITE)
+                if len(to_write) == 1:
+                    to_write = to_write[0]
+                else:
+                    to_write = np.array(to_write)
+                self.write_task.write(to_write, auto_start=False, timeout=self.timeout)
+                #configure the write to trigger on read start trigger
+                self.write_task \
+                    .triggers \
+                    .start_trigger \
+                    .cfg_dig_edge_start_trig(r"/{}/ai/StartTrigger".format(self.name))
             else:
-                _outputs = outputs
-            to_write = []
-            for ao, data in _outputs:
-                print("Setting up DAQ ", ao)
-                self.write_task.ao_channels.add_ao_voltage_chan("{}/{}".format(self.name, ao))
-                to_write.append(data)
-                
-            self.write_task.timing.cfg_samp_clk_timing(rate=rate, samps_per_chan=len(data),
-                                                       sample_mode=nidaqmx.constants.AcquisitionType.FINITE)
-            if len(to_write) == 1:
-                to_write = to_write[0]
-            else:
-                to_write = np.array(to_write)
-            self.write_task.write(to_write, auto_start=False, timeout=self.timeout)
-            #configure the write to trigger on read start trigger
-            self.write_task \
-                .triggers \
-                .start_trigger \
-                .cfg_dig_edge_start_trig(r"/{}/ai/StartTrigger".format(self.name))
+                for ao in outputs:
+                    print("Setting up DAQ ", ao)
+                    self.write_task.ao_channels.add_ao_voltage_chan("{}/{}".format(self.name, ao),
+                                                                    min_val=min_val, max_val=max_val)
         else:
             self.write_task = None
     
@@ -80,6 +84,10 @@ class DAQcard:
         data = self.task.read(nidaqmx.constants.READ_ALL_AVAILABLE, timeout=self.timeout)
         self.stop()
         return np.array(data)
+    
+    def write_scalar(self, value):
+        self.write_task.write(value, auto_start=True)
+        self.write_task.stop()
 
 if __name__ == '__main__':
     import matplotlib.pyplot as plt

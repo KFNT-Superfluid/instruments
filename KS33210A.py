@@ -28,7 +28,10 @@ class KS33210A(Instrument):
     def function(self, function):
         self.dev.write("FUNC {}".format(function.upper()))
 
-    def amplitude(self, value=None):
+    def amplitude(self, value=None, unit=None):
+        """Availale units are VPP, VRMS and DBM"""
+        if unit is not None:
+            self.dev.write('VOLT:UNIT {}'.format(unit))
         if value is not None:
             self.output_amplitude = value
             if value < 0.02:
@@ -65,7 +68,8 @@ class KS33210A(Instrument):
             self.dev.write("TRIG:SOUR IMM")
             self.dev.write("SWE:STAT OFF")
         
-    def amplitude_modulation(self, enable, depth=1):
+    def amplitude_modulation(self, enable, depth):
+        """Specify the modulation depth in percent in the range 0 -- 120"""
         if enable:
             self.dev.write("AM:STAT ON")
             self.dev.write("AM:SOUR EXT")

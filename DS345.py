@@ -6,6 +6,7 @@ Created on Thu Sep 17 12:56:38 2020
 """
 
 from .Instrument import Instrument
+import re
 
 class DS345(Instrument):
     """Stanford DS345 DC to 30 MHz signal generator."""
@@ -14,9 +15,9 @@ class DS345(Instrument):
         super().__init__(rm, address)
         print(self.dev.query('*IDN?'))
         self.dev.write("FUNC 0") # set the function to sine
-        self.output_amplitude = 0
-        self.output_state = False
-    
+        self.output_amplitude = self.amplitude() 
+        self.output_state = (self.output_amplitude > 0)
+            
     def output(self, state):
         if state:
             self.amplitude(self.output_amplitude)
@@ -34,7 +35,12 @@ class DS345(Instrument):
             if value > 0:
                 self.output_state = True
         else:
-            return self.dev.query("AMPL?")
+            resp = self.dev.query("AMPL?")
+            units_str_match = re.search('[A-Z]+', resp)
+            return float(resp[:units_str_match.start()])
+    
+    def set_AM_depth(self, value=0):
+        self.dev.write('DPTH {:.0f}'.format(value))
     
     def frequency(self, freq=None):
         if freq is not None:
