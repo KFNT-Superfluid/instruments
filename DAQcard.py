@@ -10,9 +10,10 @@ import numpy as np
 
 class DAQcard:
     def __init__(self, channels=None, rate=None, samples=None, devname=None, max_val=10, min_val=-10,
-                 outputs=None, timeout=None):
+                 outputs=None, timeout=None, sync=None, ext_sync=None):
+        self.system = nidaqmx.system.system.System()
         if devname is None:
-            self.name = nidaqmx.system.system.System().devices[0].name
+            self.name = self.system.devices[0].name
         else:
             self.name = devname
         if (channels is not None) and (len(channels) > 0):
@@ -31,6 +32,19 @@ class DAQcard:
             # measure in the default finite samples mode
             self.task.timing.cfg_samp_clk_timing(rate=rate, samps_per_chan=samples,
                                                  sample_mode=nidaqmx.constants.AcquisitionType.FINITE)
+            if sync is not None:
+                self.task.timing.ref_clk_src = "/{}/{}".format(self.name, sync)
+                self.task.timing.ref_clk_rate = 10000000
+                
+        if ext_sync is not None:
+            source = "/{}/10MHzRefClock".format(self.name)
+            if isinstance(ext_sync, str):
+                dest = "/{}/{}".format(self.name, ext_sync)
+                self.system.connect_terms(source, dest)
+            else: #assuming that ext_sync is an iterable
+                for port in ext_sync:
+                    dest = "/{}/{}".format(self.name, port)
+                    self.system.connect_terms(source, dest)
         
         if outputs is not None:
             self.write_task = nidaqmx.Task()
@@ -89,39 +103,9 @@ class DAQcard:
         self.write_task.write(value, auto_start=True)
         self.write_task.stop()
 
-if __name__ == '__main__':
-    import matplotlib.pyplot as plt
-    # plt.close('all')
-
-    rate = 4094
-    samples = int(rate*16)
-    output = np.ones(int(samples/2))
-    output[-1] = 0
-    # output[:int(samples/2)] = 1
-    freqs = np.fft.rfftfreq(samples, 1/rate)
-    
-    try:
-        # daq = DAQcard(channels=['ai0'], rate=rate, samples=samples,
-        #               outputs=('ao0', output))
-
-        # fig, ax = plt.subplots(1,1)
-        # ax.plot(output)
-        # for k in range(5):
-        #     data = daq.write_measure()
-        #     ax.plot(data)
-        
-        
-        daq = DAQcard(channels=['ai0'], rate=rate, samples=samples)
-        avgresp = 0
-        N = 5
-        for k in range(N):
-            print(k)
-            data1 = daq.measure()
-            resp = np.fft.rfft(data1)#data1[0, :] + 1j*data1[1, :])
-            avgresp += abs(resp)
-            # ax.plot(freqs, np.abs(avgresp)/(k+1))
-        avgresp = avgresp/N
-        fig, ax = plt.subplots(1, 1)
-        ax.semilogy(freqs, np.abs(avgresp))
+if __name__ == '__main__':  
+    try:        
+        daq = DAQcard(devname='Dev4', channels=None, rate=None, samples=None, ext_sync=['PFI0', 'PFI1', 'PFI2', 'PFI3',
+                                                                                        'PFI4'])
     finally:
         daq.close()

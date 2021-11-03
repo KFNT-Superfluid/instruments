@@ -7,6 +7,8 @@ Created on Thu Sep 17 13:09:58 2020
 
 from .Instrument import Instrument
 
+import time
+
 tcs = ["10u", "30u", "100u", "300u",
        "1m", "3m", "10m", "30m", "100m", "300m",
        "1", "3", "10", "30", "100", "300",
@@ -21,6 +23,7 @@ senss = ["2n", "5n", "10n", "20n", "50n", "100n", "200n", "500n",
          "1"]
 
 sensitivities = {val:code for code, val in enumerate(senss)}
+sensitivities_r = {code:val for code, val in enumerate(senss)}
 
 fslps = ['6', '12', '18', '24']
 lpfslopes = {val:code for code, val in enumerate(fslps)}
@@ -38,19 +41,47 @@ def find_best_sens(val):
         if sens > 1.5*val:
             return scode
     return "1"
-    
+
+channels = {'X': 1, 'Y': 2, 'R': 3}
 
 class SR830(Instrument):
     """Stanford SR830 lockin."""
     
     def __init__(self, rm, address):
         super().__init__(rm, address)
+        self.sensitivities = sensitivities
+        self.sensitivities_r = sensitivities_r
         
     def phase(self, phi=None):
         if phi is None:
             return float(self.dev.query('PHAS?'))
         else:
             self.dev.write('PHAS {:.3f}'.format(phi))
+    
+    def auto_phase(self):
+        self.dev.write('APHS')
+    
+    def auto_offset(self, channel='X'):
+        self.dev.write('AOFF {}'.format(channels[channel]))
+        
+    def auto_gain(self):
+        self.dev.write('AGAN')
+    
+    def offset_expandq(self, channel):
+        expands = {0: 1, 1: 10, 2: 100}
+        resp = self.dev.query('OEXP? {}'.format(channels[channel]))
+        off_str, exp_str = resp.split(',')
+        offset = float(off_str)
+        expand = expands[int(exp_str)]
+        return offset, expand
+    
+    def offset_expand(self, channel, expand=1, offset='auto'):
+        if offset == 'auto':
+            self.auto_offset(channel)
+            offset, _ = self.offset_expandq(channel)
+        expands = {1: 0, 10: 1, 100: 2}
+        command = "OEXP {}, {}, {}".format(channels[channel], offset, expands[expand])
+        self.dev.write(command)
         
     def get_aux(self, n):
         return float(self.dev.query('OAUX? {}'.format(n)))
@@ -86,15 +117,18 @@ class SR830(Instrument):
             self.dev.write('HARM {}'.format(harm))
     
     def set_timeconstant(self, tc):
-        print("Setting tc")
+        # print("Setting tc")
         self.dev.write("OFLT {}".format(time_constants[tc]))
-        print("OK")
+        # print("OK")
     
     def set_sensitivity(self, sens):
         self.dev.write("SENS {}".format(sensitivities[sens]))
     
-    def get_sensitivity(self):
-        return code_to_value(senss[int(self.dev.query("SENS?"))])
+    def get_sensitivity(self, return_code=False):
+        code = int(self.dev.query("SENS?"))
+        if return_code:
+            return code
+        return code_to_value(senss[code])
     
     def set_slope(self, slope):
         self.dev.write("OFSL {}".format(lpfslopes[slope]))
@@ -126,7 +160,9 @@ class SR830(Instrument):
         return code_to_value(sens)
     
     def overloadp(self):
-        resp = int(self.dev.query('LIAS? 2'))
+        inputo = int(self.dev.query('LIAS? 0'))
+        filtro = int(self.dev.query('LIAS? 1'))
+        outpto = int(self.dev.query('LIAS? 2'))
         self.dev.clear()
-        return bool(resp)
+        return (bool(inputo) or bool(filtro) or bool(outpto))
     
