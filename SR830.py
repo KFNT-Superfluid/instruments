@@ -95,6 +95,7 @@ class SR830(Instrument):
             raise RuntimeError("Unknown coupling {}, only DC or AC allowed".format(cpl))
     
     def set_reserve(self, res):
+        """Available options are 'high', 'normal' and 'low'."""
         reserves = {'HIGH': 0, 'NORMAL': 1, 'LOW': 2}
         try:
             self.dev.write("RMOD {}".format(reserves[res.upper()]))
@@ -160,9 +161,10 @@ class SR830(Instrument):
         return code_to_value(sens)
     
     def overloadp(self):
-        inputo = int(self.dev.query('LIAS? 0'))
-        filtro = int(self.dev.query('LIAS? 1'))
-        outpto = int(self.dev.query('LIAS? 2'))
+        status = int(self.dev.query('LIAS?'))
         self.dev.clear()
-        return (bool(inputo) or bool(filtro) or bool(outpto))
+        inputo = bool(status & (1 << 0))
+        filtro = bool(status & (1 << 1))
+        outputo = bool(status & (1 << 2))
+        return (inputo or filtro or outputo)
     

@@ -33,12 +33,12 @@ class SG384(Instrument):
             return float(self.dev.query('AMPR?'))
         self.dev.write('AMPH {:.2f}'.format(ampl))
     
-    def BNCamp(self, ampl=None):
+    def BNCamp(self, ampl=None, unit='VPP'):
         """Set the amplitude in peak-to-peak voltage."""
         if ampl is None:
             return float(self.dev.query('AMPL? VPP'))
-        if ampl > 0.002:
-            self.dev.write('AMPL {:.3f} VPP'.format(ampl))
+        if ampl >= 0.001:
+            self.dev.write('AMPL {:.3f} {}'.format(ampl, unit))
             self.enableLF(True)
         else:
             self.enableLF(False)
@@ -57,3 +57,23 @@ class SG384(Instrument):
         if status is None:
             return self.dev.query('ENBH?')
         self.dev.write('ENBH {}'.format(1 if status else 0))
+        
+    def extAM(self, enable=True, depth=100):
+        if enable:
+            self.dev.write('TYPE 0') # select AM modulation
+            self.dev.write('COUP 1') # DC coupling for the AM input
+            self.dev.write('MFNC 5') # external source for AM
+            self.dev.write('ADEP {:.1f}'.format(depth)) #modulation depth in %
+            self.dev.write('MODL 1') #enable modulation
+        else:
+            self.dev.write('MODL 0') #disable modulation
+    
+    def extFM(self, enable=True, deviation=50):
+        if enable:
+            self.dev.write('TYPE 1') # select FM modulation
+            self.dev.write('COUP 1') # DC coupling for the FM input
+            self.dev.write('MFNC 5') # external source for FM
+            self.dev.write('FDEV {:.1f}'.format(deviation)) #frequency deviation in Hz
+            self.dev.write('MODL 1') #enable modulation
+        else:
+            self.dev.write('MODL 0') #disable modulation

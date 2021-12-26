@@ -27,11 +27,15 @@ class DS345(Instrument):
             self.output_state = False
 
     def amplitude(self, value=None, unit='VP'):
+        """Available units are VP = peak-to-peak, VR = Vrms, DB = dBm"""
         if value is not None:
             if unit not in ['VP', 'VR', 'DB']:
                 raise RuntimeError("Unknown amplitude unit {}".format(unit))
-            self.dev.write("AMPL {:.4f} {}".format(value, unit))
-            self.output_amplitude=value
+            _val = value
+            if value < 0:
+                _val=0
+            self.dev.write("AMPL {:.4f} {}".format(_val, unit))
+            self.output_amplitude=_val
             if value > 0:
                 self.output_state = True
         else:

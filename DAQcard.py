@@ -9,7 +9,9 @@ import nidaqmx
 import numpy as np
 
 class DAQcard:
-    def __init__(self, channels=None, rate=None, samples=None, devname=None, max_val=10, min_val=-10,
+    def __init__(self, channels=None, rate=None, samples=None, devname=None,
+                 max_val=10, min_val=-10,
+                 max_out=10, min_out=-10,
                  outputs=None, timeout=None, sync=None, ext_sync=None):
         self.system = nidaqmx.system.system.System()
         if devname is None:
@@ -24,7 +26,7 @@ class DAQcard:
                 self.timeout = 1.1*self.samples/self.rate
             else:
                 self.timeout = timeout
-            self.task = nidaqmx.Task()
+            self.task = nidaqmx.Task(new_task_name='ReadTask')
             for ch in self.channels:
                 self.task.ai_channels.add_ai_voltage_chan("{}/{}".format(self.name, ch), 
                                                           min_val=min_val, max_val=max_val,
@@ -33,8 +35,14 @@ class DAQcard:
             self.task.timing.cfg_samp_clk_timing(rate=rate, samps_per_chan=samples,
                                                  sample_mode=nidaqmx.constants.AcquisitionType.FINITE)
             if sync is not None:
+                print('Synchronizing DAQ to 10 MHz external clock')
+                self.system.disconnect_terms("/{}/10MHzRefClock".format(self.name), 
+                                             "/{}/{}".format(self.name,
+                                                             sync))
                 self.task.timing.ref_clk_src = "/{}/{}".format(self.name, sync)
                 self.task.timing.ref_clk_rate = 10000000
+        else:
+            self.task = None
                 
         if ext_sync is not None:
             source = "/{}/10MHzRefClock".format(self.name)
@@ -47,13 +55,13 @@ class DAQcard:
                     self.system.connect_terms(source, dest)
         
         if outputs is not None:
-            self.write_task = nidaqmx.Task()
+            self.write_task = nidaqmx.Task(new_task_name='WriteTask')
             if isinstance(outputs[0], tuple):
                 to_write = []
                 for ao, data in outputs:
                     print("Setting up DAQ ", ao)
                     self.write_task.ao_channels.add_ao_voltage_chan("{}/{}".format(self.name, ao),
-                                                                    min_val=min_val, max_val=max_val)
+                                                                    min_val=min_out, max_val=max_out)
                     to_write.append(data)
                     
                 self.write_task.timing.cfg_samp_clk_timing(rate=rate, samps_per_chan=len(data),
@@ -68,11 +76,16 @@ class DAQcard:
                     .triggers \
                     .start_trigger \
                     .cfg_dig_edge_start_trig(r"/{}/ai/StartTrigger".format(self.name))
+                
+                if sync is not None:
+                    print('Synchronizing DAQ write to 10 MHz external clock')
+                    self.write_task.timing.ref_clk_src = "/{}/{}".format(self.name, sync)
+                    self.write_task.timing.ref_clk_rate = 10000000
             else:
                 for ao in outputs:
                     print("Setting up DAQ ", ao)
                     self.write_task.ao_channels.add_ao_voltage_chan("{}/{}".format(self.name, ao),
-                                                                    min_val=min_val, max_val=max_val)
+                                                                    min_val=min_out, max_val=max_out)
         else:
             self.write_task = None
     
@@ -81,7 +94,8 @@ class DAQcard:
     def stop(self):
         self.task.stop()
     def close(self):
-        self.task.close()
+        if self.task is not None:
+            self.task.close()
         if self.write_task is not None:
             self.write_task.close()
     
@@ -105,7 +119,7 @@ class DAQcard:
 
 if __name__ == '__main__':  
     try:        
-        daq = DAQcard(devname='Dev4', channels=None, rate=None, samples=None, ext_sync=['PFI0', 'PFI1', 'PFI2', 'PFI3',
-                                                                                        'PFI4'])
+        daq = DAQcard(devname='Dev4', channels=['ai1'], rate=100, samples=100, sync='PFI0')
+        data = daq.measure()
     finally:
         daq.close()
