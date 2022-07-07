@@ -2,12 +2,12 @@
 """
 Created on Sun Sep  6 11:02:29 2020
 
-Class to control the BNC model 865 RF source.
+Class to control the AnaPico / BNC RF sources.
 
 @author: Emil
 """
 
-class BNC865:
+class RFsource:
     """Very basic interface to the BNC Model 865 RF source."""
     
     def __init__(self, rm, address='USB0::0x03EB::0xAFFF::4C1-3A3200905-1225::0::INSTR'):
@@ -26,6 +26,24 @@ class BNC865:
         if set_freq is None:
             return float(self.dev.query(':FREQ?'))
         self.dev.write(':FREQ {:.0f}'.format(set_freq))
+    
+    def phase(self, set_phase=None):
+        """
+        Sets or queries the phase.
+
+        Parameters
+        ----------
+        set_phase : float [radians], optional
+            Sets the phase. If None (default) asks for the phase and returns it
+
+        Returns
+        -------
+        The phase is set_phase=None.
+
+        """
+        if set_phase is None:
+            return float(self.dev.query(':PHAS?'))
+        self.dev.write(':PHAS {:.5f}'.format(set_phase))
     
     def output(self, set_status=None):
         """Set or query the output status."""
@@ -55,7 +73,8 @@ class BNC865:
             self.dev.write(':AM:STAT 1')
         else:
             self.dev.write(':AM:STAT 0')
-        
+    
+BNC865 = RFsource
 
 if __name__ == '__main__':
     import visa
