@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu Sep 17 13:09:58 2020
+Created on Thu July  7 15:00 2022
 
-@author: emil
+@author: Emil
 """
 
 from .Instrument import Instrument
 
 import time
 
-tcs = ["10u", "30u", "100u", "300u",
+tcs = ["100u", "300u",
        "1m", "3m", "10m", "30m", "100m", "300m",
        "1", "3", "10", "30", "100", "300",
        "1k", "3k", "10k", "30k"]
@@ -17,15 +17,13 @@ tcs = ["10u", "30u", "100u", "300u",
 time_constants = {val:code for code, val in enumerate(tcs)}
 
 
-senss = ["2n", "5n", "10n", "20n", "50n", "100n", "200n", "500n",
-         "1u", "2u", "5u", "10u", "20u", "50u", "100u", "200u", "500u",
-         "1m", "2m", "5m", "10m", "20m", "50m", "100m", "200m", "500m",
-         "1"]
+senss = ["100n", "300n", "1u", "3u", "10u", "30u", "100u", "300u",
+         "1m", "3m", "10m", "30m", "100m", "300m", "1"]
 
 sensitivities = {val:code for code, val in enumerate(senss)}
 sensitivities_r = {code:val for code, val in enumerate(senss)}
 
-fslps = ['6', '12', '18', '24']
+fslps = ['nofilter', '6', '12', '18', '24']
 lpfslopes = {val:code for code, val in enumerate(fslps)}
 
 suffixes = {'n': 1e-9, 'u': 1e-6, 'm': 1e-3, 'k': 1e3}
@@ -44,7 +42,7 @@ def find_best_sens(val):
 
 channels = {'X': 1, 'Y': 2, 'R': 3}
 
-class SR830(Instrument):
+class SR844(Instrument):
     """Stanford SR830 lockin."""
     
     def __init__(self, rm, address):
@@ -53,7 +51,6 @@ class SR830(Instrument):
         self.sensitivities_r = sensitivities_r
         
     def phase(self, phi=None):
-        """ Sets or queries the phase in degree."""
         if phi is None:
             return float(self.dev.query('PHAS?'))
         else:
@@ -70,7 +67,7 @@ class SR830(Instrument):
     
     def offset_expandq(self, channel):
         expands = {0: 1, 1: 10, 2: 100}
-        resp = self.dev.query('OEXP? {}'.format(channels[channel]))
+        resp = self.dev.query('DEXP? {}'.format(channels[channel]))
         off_str, exp_str = resp.split(',')
         offset = float(off_str)
         expand = expands[int(exp_str)]
@@ -85,29 +82,26 @@ class SR830(Instrument):
         self.dev.write(command)
         
     def get_aux(self, n):
-        """Reads the auxiliary input n."""
-        return float(self.dev.query('OAUX? {}'.format(n)))
+        return float(self.dev.query('AUXI? {}'.format(n)))
     
-    def coupling(self, cpl):
-        """Sets the coupling to 'AC' or 'DC'."""
-        if cpl.upper() == 'AC':
-            self.dev.write('ICPL 0')
-        elif cpl.upper() == 'DC':
-            self.dev.write('ICPL 1')
+    def input_impedance(self, imp):
+        if imp == '50':
+            self.dev.write('INPZ 0')
+        elif imp.upper() == 'HIZ':
+            self.dev.write('INPZ 1')
         else:
-            raise RuntimeError("Unknown coupling {}, only DC or AC allowed".format(cpl))
+            raise RuntimeError("Unknown coupling {}, only '50' (50 Ohm) or 'HIZ' (1 Mohm) allowed".format(imp))
     
     def set_reserve(self, res):
         """Available options are 'high', 'normal' and 'low'."""
         reserves = {'HIGH': 0, 'NORMAL': 1, 'LOW': 2}
         try:
-            self.dev.write("RMOD {}".format(reserves[res.upper()]))
+            self.dev.write("WRSV {}".format(reserves[res.upper()]))
         except KeyError:
             print("Only 'high', 'normal' and 'low' reserves are available.")
             raise
     
     def set_reference(self, ref):
-        """ Sets the reference to 'external' or 'internal'."""
         if ref=='external':
             self.dev.write('FMOD 0') # external reference
         elif ref=='internal':
@@ -116,58 +110,17 @@ class SR830(Instrument):
             raise RuntimeError("bad reference option: {}".format(ref))
         
     def harmonic(self, harm=None):
-        """
-        Sets or queries the harmonic
-
-        Parameters
-        ----------
-        harm : int or None, optional
-            Sets the harmonic to this number. If None, queries and returns the set harmonic. The default is None.
-
-        Returns
-        -------
-        int
-            The harmonic set on the instrument. Does not return anything if harm is a number.
-        """
         if harm is None:
             return int(self.dev.query('HARM?'))
         else:
             self.dev.write('HARM {}'.format(harm))
     
     def set_timeconstant(self, tc):
-        """
-        Sets the time constant
-
-        Parameters
-        ----------
-        tc : string
-            The time constant in the format as written on the front panel of the instrument.
-            "10m", "30m", "100m" would be 10ms, 30ms and 100ms, and so on ("10u" is minimum)
-
-        Returns
-        -------
-        None.
-
-        """
         # print("Setting tc")
         self.dev.write("OFLT {}".format(time_constants[tc]))
         # print("OK")
     
     def set_sensitivity(self, sens):
-        """
-        Sets the sensitivity.
-
-        Parameters
-        ----------
-        sens : string
-            The sensitivity in the format as written on the front panel of the instrument for voltage measurement.
-            "10m", "20m", "50m" would be 10mV, 20mV, 50mV and so on.
-
-        Returns
-        -------
-        None.
-
-        """
         self.dev.write("SENS {}".format(sensitivities[sens]))
     
     def get_sensitivity(self, return_code=False):
@@ -177,7 +130,6 @@ class SR830(Instrument):
         return code_to_value(senss[code])
     
     def set_slope(self, slope):
-        """ Set the low-pass filter slope. Options are '6', '12', '18', '24'."""
         self.dev.write("OFSL {}".format(lpfslopes[slope]))
         
     def set_output_amplitude(self, A):

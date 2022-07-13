@@ -7,20 +7,15 @@ Class to control the AnaPico / BNC RF sources.
 @author: Emil
 """
 
-class RFsource:
-    """Very basic interface to the BNC Model 865 RF source."""
+from .Instrument import Instrument
+
+class RFsource(Instrument):
+    """Very basic interface to the AnaPico / BNC RF sources."""
     
     def __init__(self, rm, address='USB0::0x03EB::0xAFFF::4C1-3A3200905-1225::0::INSTR'):
-        self.rm = rm
-        self.address = address
-        self.dev = self.rm.open_resource(address)
-        idn = self.dev.query('*IDN?')
-        print(idn)
-    
-    def close(self):
-        """Close the VISA session."""
-        self.dev.close()
-    
+        super().__init__(rm, address)
+        print(self.idn())
+        
     def frequency(self, set_freq=None):
         """Set or query the frequency in Hz."""
         if set_freq is None:
@@ -73,6 +68,16 @@ class RFsource:
             self.dev.write(':AM:STAT 1')
         else:
             self.dev.write(':AM:STAT 0')
+    
+    def reference(self, source=None, reffreq=None):
+        if source is None:
+            return self.dev.query(':ROSC:SOUR?').strip()
+        self.dev.write(':ROSC:SOUR {}'.format(source))
+        if reffreq is not None:
+            self.dev.write(':ROSC:EXT:FREQ {:.5f}'.format(reffreq))
+    
+    def reflocked(self):
+        return self.dev.query(':ROSC:LOCK?')
     
 BNC865 = RFsource
 
