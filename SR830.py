@@ -213,4 +213,3 @@ class SR830(Instrument):
         filtro = bool(status & (1 << 1))
         outputo = bool(status & (1 << 2))
         return (inputo or filtro or outputo)
-    

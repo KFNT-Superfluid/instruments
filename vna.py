@@ -57,6 +57,7 @@ class VNA(Instrument):
         self.dev.write(':INIT1:CONT OFF')
 
     def sweep(self, start, stop, num_points=10001, bw=10e3, avg=None):
+        """Returns a 2D array of (f,x,y)"""
         self.dev.write(":SENS1:FREQ:STAR " +str(start))
         self.dev.write(":SENS1:FREQ:STOP " +str(stop))
         self.dev.write(":SENS1:SWE:POIN " +str(num_points))
@@ -103,4 +104,5 @@ class VNA(Instrument):
         return data
     
     def sweep_cs(self, center, span, num_points=10001, bw=10e3, avg=None):
+        """Returns a 2D array of (f,x,y)"""
         return self.sweep(center-span/2, center+span/2, num_points, bw, avg)

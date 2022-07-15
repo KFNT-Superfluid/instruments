@@ -69,6 +69,19 @@ class RFsource(Instrument):
         else:
             self.dev.write(':AM:STAT 0')
     
+    def pm(self, state=None, sens=1):
+        if state is None:
+            print(self.dev.query(':PM:STAT?'))
+            print(self.dev.query(':PM:SOUR?'))
+            print(self.dev.query(":PM:SENS?"))
+            return
+        if state:
+            self.dev.write(':PM:SOUR EXT')
+            self.dev.write(':PM:SENS {:.2f}'.format(sens))
+            self.dev.write(':PM:STAT 1')
+        else:
+            self.dev.write(':PM:STAT 0')
+    
     def reference(self, source=None, reffreq=None):
         if source is None:
             return self.dev.query(':ROSC:SOUR?').strip()

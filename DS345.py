@@ -43,6 +43,14 @@ class DS345(Instrument):
             units_str_match = re.search('[A-Z]+', resp)
             return float(resp[:units_str_match.start()])
     
+    def offset(self, value=None):
+        """Set or query the offset in volts."""
+        if value is not None:
+            self.dev.write("OFFS {:.4f}".format(value))
+        else:
+            resp = self.dev.query("OFFS?")
+            return float(resp)
+    
     def set_AM_depth(self, value=0):
         self.dev.write('DPTH {:.0f}'.format(value))
     
