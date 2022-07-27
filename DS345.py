@@ -32,11 +32,11 @@ class DS345(Instrument):
             if unit not in ['VP', 'VR', 'DB']:
                 raise RuntimeError("Unknown amplitude unit {}".format(unit))
             _val = value
-            if value < 0:
+            if value < 0 and not (unit == 'DB'):
                 _val=0
             self.dev.write("AMPL {:.4f} {}".format(_val, unit))
             self.output_amplitude=_val
-            if value > 0:
+            if value > 0 or unit == 'DB':
                 self.output_state = True
         else:
             resp = self.dev.query("AMPL?")

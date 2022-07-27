@@ -38,7 +38,7 @@ class RFsource(Instrument):
         """
         if set_phase is None:
             return float(self.dev.query(':PHAS?'))
-        self.dev.write(':PHAS {:.5f}'.format(set_phase))
+        self.dev.write(':PHAS {:.5f} rad'.format(set_phase))
     
     def output(self, set_status=None):
         """Set or query the output status."""
@@ -91,6 +91,15 @@ class RFsource(Instrument):
     
     def reflocked(self):
         return self.dev.query(':ROSC:LOCK?')
+    
+    def refout(self, state=None):
+        if state is None:
+            return self.dev.query(':ROSC:OUTPUT:STAT?')
+        else:
+            if state:
+                self.dev.write(':ROSC:OUTPUT:STAT ON')
+            else:
+                self.dev.write(':ROSC:OUTPUT:STAT OFF')
     
 BNC865 = RFsource
 
