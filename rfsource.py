@@ -20,7 +20,7 @@ class RFsource(Instrument):
         """Set or query the frequency in Hz."""
         if set_freq is None:
             return float(self.dev.query(':FREQ?'))
-        self.dev.write(':FREQ {:.0f}'.format(set_freq))
+        self.dev.write(':FREQ {:.3f}'.format(set_freq))
     
     def phase(self, set_phase=None):
         """
