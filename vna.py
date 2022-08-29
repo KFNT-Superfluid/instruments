@@ -81,9 +81,9 @@ class VNA(Instrument):
         self.dev.query("*OPC?")
 
         #Autoscale
-        self.dev.write(":DISP:WIND1:TRAC1:Y:AUTO")
-        self.dev.write(":DISP:WIND1:TRAC2:Y:AUTO")
-        self.dev.write(":DISP:WIND1:TRAC3:Y:AUTO")
+        # self.dev.write(":DISP:WIND1:TRAC1:Y:AUTO")
+        # self.dev.write(":DISP:WIND1:TRAC2:Y:AUTO")
+        # self.dev.write(":DISP:WIND1:TRAC3:Y:AUTO")
 
         self.dev.write(":FORM:DATA ASC")
 
