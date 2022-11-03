@@ -12,12 +12,23 @@ class DAQcard:
     def __init__(self, channels=None, rate=None, samples=None, devname=None,
                  max_val=10, min_val=-10,
                  max_out=10, min_out=-10,
-                 outputs=None, timeout=None, sync=None, ext_sync=None):
+                 outputs=None, timeout=None, sync=None, ext_sync=None,
+                 terminal_config='NRSE'):
         self.system = nidaqmx.system.system.System()
         if devname is None:
             self.name = self.system.devices[0].name
         else:
             self.name = devname
+        
+        if terminal_config.upper() == 'NRSE':
+            tcfg = nidaqmx.constants.TerminalConfiguration.NRSE
+        elif terminal_config.upper() == 'RSE':
+            tcfg = nidaqmx.constants.TerminalConfiguration.RSE
+        elif terminal_config.upper() == 'DIFF':
+            tcfg = nidaqmx.constants.TerminalConfiguration.DIFF
+        else:
+            raise ValueError(f"Unknown terminal configuration '{terminal_config}'.\n"
+                             "Only 'RSE' and 'NRSE' (default) and 'DIFF' allowed.")
         if (channels is not None) and (len(channels) > 0):
             self.channels = channels
             self.rate = rate
@@ -30,7 +41,7 @@ class DAQcard:
             for ch in self.channels:
                 self.task.ai_channels.add_ai_voltage_chan("{}/{}".format(self.name, ch), 
                                                           min_val=min_val, max_val=max_val,
-                                                          terminal_config=nidaqmx.constants.TerminalConfiguration.RSE)
+                                                          terminal_config=tcfg)
             # measure in the default finite samples mode
             self.task.timing.cfg_samp_clk_timing(rate=rate, samps_per_chan=samples,
                                                  sample_mode=nidaqmx.constants.AcquisitionType.FINITE)
@@ -119,7 +130,8 @@ class DAQcard:
 
 if __name__ == '__main__':  
     try:        
-        daq = DAQcard(devname='Dev4', channels=['ai1'], rate=100, samples=100, sync='PFI0')
+        daq = DAQcard(channels=['ai1'], rate=100, samples=100,
+                      terminal_config='DIFF')
         data = daq.measure()
     finally:
         daq.close()
