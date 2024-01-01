@@ -47,15 +47,14 @@ end_event = thr.Event()
 handler_id = 0
 finished_handlers = Queue()
 try:
-    while True:
-        with Listener(address) as listener:
-            print("Listening: ", listener.address)
-            if True:
-                port = listener.address[1]
-                # address = ('localhost', port)
-                with open(port_filename, 'w') as port_file:
-                    port_file.write(str(port))
-        
+    with Listener(address) as listener:
+        print("Listening: ", listener.address)
+        if True:
+            port = listener.address[1]
+            # address = ('localhost', port)
+            with open(port_filename, 'w') as port_file:
+                port_file.write(str(port))
+        while True:        
             conn = listener.accept()
             print(f"Accepted {listener.last_accepted}")
             handler_name = f"handler {handler_id}"
@@ -64,10 +63,10 @@ try:
             handlers[handler_name] = c
             handlers[handler_name].start()
             handler_id += 1
-        while not finished_handlers.empty():
-            name = finished_handlers.get()
-            print(f"Joining {name}")
-            handlers.pop(name).join()
+            while not finished_handlers.empty():
+                name = finished_handlers.get()
+                print(f"Joining {name}")
+                handlers.pop(name).join()
 finally:
     end_event.set()
     for c in handlers.values():

@@ -8,13 +8,29 @@ Base class to represent instruments. Only opening and access control.
 """
 
 import pyvisa as visa
+from .InstrumentClient import InstrumentClient
+import pickle
 
 class Instrument:
-    def __init__(self, rm, address):
+    def __init__(self, rm, address, access_mode='exclusive'):
         self.rm = rm
         self.address = address
-        self.dev = rm.open_resource(address, access_mode=visa.constants.AccessModes.shared_lock)
+        self.access_mode = access_mode
+        match access_mode:
+            case 'shared':
+                self.dev = rm.open_resource(address, access_mode=visa.constants.AccessModes.shared_lock)
+            case 'exclusive':
+                self.dev = rm.open_resource(address)
+            case 'socket':
+                self.dev = InstrumentClient(address)
         self.locked = False
+    
+    def configure(self, conf):
+        if self.access_mode == 'socket':
+            self.dev.configure(conf)
+        else:
+            for attr in conf:
+                setattr(self.dev, attr, conf[attr])
     
     def lock(self, timeout=5000):
         self.dev.lock(timeout=timeout)
