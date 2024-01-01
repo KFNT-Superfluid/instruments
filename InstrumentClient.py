@@ -14,16 +14,18 @@ import logging as log
 import pickle
 
 class InstrumentClient:
-    def __init__(self, visa_addr, address='localhost', port_filename='instrument_server_port.txt'):
+    def __init__(self, visa_addr, address='localhost', port=None, port_filename='instrument_server_port.txt'):
         self.visa_addr = visa_addr
 
-        with open(os.path.join(tempfile.gettempdir(), port_filename), 'r') as port_file:
-            port = int(port_file.readline())
+        if port is None:
+            with open(os.path.join(tempfile.gettempdir(), port_filename), 'r') as port_file:
+                port = int(port_file.readline())
         self.address = (address, port)
-        self.connection = Client(self.address)
-        self.open()
+        self.connection = Client(self.address) #open conncetion to the server
+        self.open() #open the instrument on the server
     
     def disconnect(self):
+        "Close the connection to the server."
         self.connection.close()
     
     def send_and_recv(self, msg):
@@ -42,6 +44,7 @@ class InstrumentClient:
             raise RuntimeError(f"Unknown Error: {msg}")
     
     def open(self):
+        "Open the instrument on the server."
         resp = self.send_and_recv(f"OPEN {self.visa_addr}")
         if resp != "OPEN OK":
             self.handle_error(resp)
@@ -74,6 +77,21 @@ class InstrumentClient:
             self.handle_error(resp)
     
     def configure(self, conf):
+        """
+        Configure the instrument with the options in the conf dictionary.
+        The dict is serialized and sent over the socket.
+
+        Parameters
+        ----------
+        conf : dict
+            Configuration of the VISA resource. Keys should be the names
+            of the attributes of the pyvisa Resource.
+
+        Returns
+        -------
+        None.
+
+        """
         conf_msg = f"CONF {self.visa_addr} {pickle.dumps(conf).hex()}"
         resp = self.send_and_recv(conf_msg)
         if resp != "CONF OK":

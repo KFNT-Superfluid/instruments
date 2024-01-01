@@ -92,7 +92,8 @@ class InstrumentClientListener:
         else: #propagate whatever exception happened
             return False
 
-class RefCountedInstrument():
+class RefCountedInstrument:
+    "Simple wrapper for VISA resources that counts how many clients are open to it."
     def __init__(self, dev):
         self.dev = dev
         self.ref_counter = 1
@@ -105,6 +106,7 @@ class RefCountedInstrument():
         return self.ref_counter
 
 class VISAInstruments:
+    "Manager for all VISA communications, to be shared by all client handlers"
     def __init__(self):
         self.global_visa_lock = thr.Lock()
         self.instruments = {}
