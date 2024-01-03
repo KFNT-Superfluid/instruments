@@ -8,6 +8,10 @@ Created on Thu Sep 17 13:09:58 2020
 from .Instrument import Instrument
 
 import time
+import sys
+import numpy as np
+from ilock import ILock
+
 
 tcs = ["10u", "30u", "100u", "300u",
        "1m", "3m", "10m", "30m", "100m", "300m",
@@ -29,6 +33,14 @@ fslps = ['6', '12', '18', '24']
 lpfslopes = {val:code for code, val in enumerate(fslps)}
 
 suffixes = {'n': 1e-9, 'u': 1e-6, 'm': 1e-3, 'k': 1e3}
+
+sample_rates = {'62.5mHz':0,'125mHz':1,'250mHz':2,'500mHz':3,'1Hz':4,'2Hz':5,'4Hz':6,
+                '8Hz':7,'16Hz':8,'32Hz':9,'64Hz':10,'128Hz':11,'256Hz':12,'512Hz':13,
+                'Trigger':14}
+
+x_display = ['X','R','X noise','AUX in 1','AUX in 2']
+y_display = ['Y','Theta','Y noise','AUX in 3','AUX in 4']
+
 def code_to_value(code):
     if code[-1] in suffixes:
         return float(code[:-1])*suffixes[code[-1]]
@@ -47,8 +59,8 @@ channels = {'X': 1, 'Y': 2, 'R': 3}
 class SR830(Instrument):
     """Stanford SR830 lockin."""
     
-    def __init__(self, rm, address):
-        super().__init__(rm, address)
+    def __init__(self, rm, address, **kwargs):
+        super().__init__(rm, address, **kwargs)
         self.sensitivities = sensitivities
         self.sensitivities_r = sensitivities_r
         
@@ -87,6 +99,13 @@ class SR830(Instrument):
     def get_aux(self, n):
         """Reads the auxiliary input n."""
         return float(self.dev.query('OAUX? {}'.format(n)))
+    
+    def set_aux(self,n,U):
+        """Sets the voltage (V) on auxiliary output n"""
+        if abs(U) > 10.5:
+            raise RuntimeError('Set voltage exceeds lockin limit 10.5 V')
+        else:
+            self.dev.write('AUXV {}, {}'.format(n,U))
     
     def coupling(self, cpl):
         """Sets the coupling to 'AC' or 'DC'."""
@@ -213,3 +232,182 @@ class SR830(Instrument):
         filtro = bool(status & (1 << 1))
         outputo = bool(status & (1 << 2))
         return (inputo or filtro or outputo)
+
+    def set_display_x(self,  display:str):
+        """
+        Set display value on X channel.
+        ----------
+        display : select quantity (int)
+            X   \n
+            R    \n
+            X noise  \n
+            AUX in 1  \n
+            AUX in 2   \n
+        -----------
+        
+        Important function, because data buffer saves display values       
+        """
+
+        try:
+            i = x_display.index(display)
+        except:
+            raise KeyError("Invalid value of 'display'")
+            
+        self.dev.write("DDEF {:d}, {:d}, 0".format(1, i))
+
+        
+    def set_display_y(self,  display:str):
+        """
+        Set display value on Y channel.
+        ----------
+        display : select quantity (int)
+            Y   \n
+            Theta    \n
+            Y noise  \n
+            AUX in 3  \n
+            AUX in 4   \n
+        -----------
+        
+        Important function, because data buffer saves display values       
+        """
+        try:
+            i = y_display.index(display)
+        except:
+            raise KeyError("Invalid value of 'display'")
+            
+        self.dev.write("DDEF {:d}, {:d}, 0".format(2, i))
+
+            
+            
+
+    def get_display_x(self):
+        """
+        Get display value on X channel.
+        ----------
+        Returns
+        ----------
+        display :  (int)
+            0 : X  \n
+            1 : R    \n
+            2 : X noise  \n
+            3 : AUX in 1  \n
+            4 : AUX in 2   \n
+        -----------
+        Important function, because data buffer saves display values       
+        """
+
+        display = self.dev.query("DDEF? {:d}".format(1))
+        return x_display[int(display[0])]
+    
+    def get_display_y(self):
+        """
+        Get display value on X channel.
+        ----------
+        Returns
+        ----------
+        display :  (int)
+            0 : Y   \n
+            1 : Theta    \n
+            2 : Y noise  \n
+            3 : AUX in 3  \n
+            4 : AUX in 4   \n
+        -----------
+        Important function, because data buffer saves display values       
+        """
+
+        display = self.dev.query("DDEF? {:d}".format(2))
+        return y_display[int(display[0])]
+    
+    def buffer_shot(self,sample_rate:str,N:int,debug:bool=False):
+        """
+        Measure full buffer in shot mode, with given sample rate.
+        X and Y points are measured at the same time. \n
+        While buffer data are transfered to PC, data transfer from other
+        lockins is locked.
+
+        
+        Parameters
+        ----------
+        sample_rate : str
+            permitted values \n
+            62.5mHz  \n
+            125mHz  \n
+            250mHz  \n
+            500mHz  \n
+            1Hz  \n
+            2Hz  \n
+            4Hz  \n
+            8Hz  \n
+            16Hz  \n
+            32Hz  \n
+            64Hz  \n
+            128Hz  \n
+            256Hz  \n
+            512Hz  \n
+            Trigger
+            
+        N  : int
+            number of measured points, max 16383
+
+        debug : bool
+            print progress
+        Returns
+        -------
+        X : numpy array
+            measured X points
+        Y : numpy array
+            measured Y points
+        """
+        try:
+            i = sample_rates[sample_rate]
+        except:
+            raise KeyError('Invalid sample rate')
+            
+        self.dev.write(f'SRAT {i}')
+        if N > 16383:
+            raise Exception('Maximum number of measured points (16383) exceeded!')
+        
+       
+        with ILock('aaa'):
+            self.dev.write('PAUS')
+            self.dev.write('REST')
+            self.dev.write('STRT')
+        j = 0
+        
+        sample_rate_float = 0.0625*2**i
+        time.sleep(N/sample_rate_float +2)
+        
+        with ILock('aaa'):
+            j = int(self.dev.query('SPTS?'))
+            if j<N:
+                while j+1<=N:
+                    time.sleep(2)
+                    j = int(self.dev.query('SPTS?'))
+            self.dev.write('PAUS')
+        
+        if debug:
+            print(f'\nNumber of points in buffer: {j}')
+        
+        try:
+            start = time.time()
+            old_timeout = self.dev.timeout
+            self.dev.timeout = None
+            with ILock('aaa',timeout=5*60):
+                X_buffer = self.dev.query_binary_values(f'TRCB? 1,0,{N}',datatype='f',data_points = N,header_fmt='empty')
+                Y_buffer = self.dev.query_binary_values(f'TRCB? 2,0,{N}',datatype='f',data_points = N,header_fmt='empty')
+            self.dev.timeout = old_timeout
+            end = time.time()
+            if debug:
+                print(f'Transfer took: {end-start}s')
+        except Exception as e:
+            self.dev.write('REST')
+            raise Exception(f'Could not extract buffer data\nError: {e}')
+        
+        X = np.array(X_buffer)
+        Y = np.array(Y_buffer)
+        self.dev.write('REST')
+    
+        return X,Y
+        
+            
+            

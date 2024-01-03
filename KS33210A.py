@@ -6,13 +6,16 @@ Created on Thu Sep 17 12:56:38 2020
 """
 
 import numpy as np
+import time
 from .Instrument import Instrument
 
 class KS33210A(Instrument):
-    """Keysight KS33210A DC to 10 MHz signal generator."""
+    """Keysight KS33210A DC to 10 MHz signal generator.
+        \nWorks for other KS332xxx series signal generators    
+    """
     
-    def __init__(self, rm, address, Z='inf', initialize_state=True):
-        super().__init__(rm, address)
+    def __init__(self, rm, address, Z='inf', initialize_state=True, **kwargs):
+        super().__init__(rm, address, **kwargs)
         print(self.idn())
         if initialize_state:
             self.dev.write("FUNC SIN") # set the function to sine
@@ -34,13 +37,13 @@ class KS33210A(Instrument):
             self.dev.write('VOLT:UNIT {}'.format(unit))
         if value is not None:
             self.output_amplitude = value
-            if value < 0.02:
+            if value < 0.01:
                 self.output_amplitude = 0
                 self.output(False)
             else:
                 self.dev.write("VOLT {:.4f}".format(value))
         else:
-            if self.output_amplitude < 0.02:
+            if self.output_amplitude < 0.01:
                 return 0
             return float(self.dev.query("VOLT?"))
     
@@ -77,6 +80,19 @@ class KS33210A(Instrument):
         else:
             self.dev.write("AM:STAT OFF")
         
+    def amplitude_modulation_int(self, enable, depth):
+        """Specify the modulation depth in percent in the range 0 -- 120"""
+        if enable:
+            self.dev.write("AM:STAT ON")
+            self.dev.write("AM:SOUR INT")
+            self.dev.write("AM:DEPTH {:.4f}".format(depth))
+        else:
+            self.dev.write("AM:STAT OFF")
+            
+    def modulation_frequency (self, freq):
+        self.dev.write("AM:INT:FREQ {:.9f}".format(freq))
+       
+    
     def output(self, state=None):
         if state is None:
             resp = self.dev.query('OUTP?')
@@ -89,3 +105,60 @@ class KS33210A(Instrument):
         else:
             self.dev.write("OUTP OFF")
             return False
+    
+    def load_arb(self, waveform, name=None):
+        if len(waveform)>8192:
+            raise ValueError("Maximum 8192 points allowed.")
+        waveform_txt = ""
+        for point in waveform:
+            waveform_txt += ',{:.4f}'.format(point)
+            # print(point)
+        old_timeout = self.dev.timeout
+        # print("Starting download.")
+        self.dev.timeout = 60000 #60 s
+        self.dev.write(':data volatile'+waveform_txt)
+        self.dev.timeout = old_timeout
+        # print("Download finished.")
+        # time.sleep(2)
+        if name is not None:
+            # print("Copying")
+            self.dev.write(':data:copy '+name)
+            # time.sleep(2)
+    def select_arb(self, name):
+        # print("Selecting arb")
+        self.dev.write(':func:user '+name)
+        self.dev.write(':func user')
+        # time.sleep(2)
+    def burst(self, enable, N=1, source = 'bus',trig_delay = 0):
+        """
+        Parameters
+        ----------
+        enable : Bool
+            enable/disable burst mode
+        N : Int, optional
+            Number of cycles. The default is 1.
+        source : Str, optional
+            trigger source, options:
+                bus - remote triggered \n
+                ext - triggered from rear pannel bnc\n
+            Default is 'bus', to trigger by bus use function 'gen.trig()'
+        trig_delay : Float, optional
+            set trigger delay in seconds, default is 0
+            
+        Returns
+        -------
+        None.
+
+        """
+        if enable:
+            self.dev.write(':burst:mode trig')
+            self.dev.write(f':trig:sour {source}')
+            self.dev.write(':trig:slop pos')
+            self.dev.write(f':trig:del {trig_delay}')
+            self.dev.write(':burst:ncyc {:d}'.format(N))
+            self.dev.write(':burst:state on')
+        else:
+            self.dev.write(':burst:state off')
+    def trig(self):
+        self.dev.write('TRIG')
+        
