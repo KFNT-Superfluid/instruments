@@ -22,15 +22,13 @@ class InstrumentClientListener:
     """
     def __init__(self, instruments, port=0, address=None, port_filename='instrument_server_port.txt'):
         if address is None:
-            self.address = 'localhost'
-        else:
-            self.address = address
+            address = 'localhost'
         
         self.instruments = instruments
         self.port = port
         self.port_filename = os.path.join(tempfile.gettempdir(), port_filename)
         
-        self.address = (self.address, self.port)
+        self.address = (address, self.port)
         self.handlers = {} # running handlers
         self.end_event = thr.Event() # for signaling running handlers
         self.handler_id = 0 # id of the next handler
@@ -42,6 +40,7 @@ class InstrumentClientListener:
 
         """
         self.listener = Listener(self.address)
+        self.address = self.listener.address
         if self.port == 0: #port 0 means that the port was assigned automatically by the OS
             self.port = self.listener.address[1] #save the actual port
         with open(self.port_filename, 'w') as port_file:
@@ -241,9 +240,9 @@ class InstrumentClientHandler(thr.Thread):
 if __name__ == '__main__':
     log.basicConfig(filename="instrument_server_log.txt",
                     format="%(asctime)s %(levelname)s:%(message)s",
-                    level=log.DEBUG)
+                    level=log.INFO)
     with (VISAInstruments() as instruments, 
-          InstrumentClientListener(instruments) as server
+          InstrumentClientListener(instruments, address='') as server
           ):
         server.start()
         server.loop()
