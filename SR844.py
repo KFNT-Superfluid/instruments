@@ -16,7 +16,6 @@ tcs = ["100u", "300u",
 
 time_constants = {val:code for code, val in enumerate(tcs)}
 
-
 senss = ["100n", "300n", "1u", "3u", "10u", "30u", "100u", "300u",
          "1m", "3m", "10m", "30m", "100m", "300m", "1"]
 
@@ -84,41 +83,90 @@ class SR844(Instrument):
     def get_aux(self, n):
         return float(self.dev.query('AUXI? {}'.format(n)))
     
-    def input_impedance(self, imp):
+    def input_impedance(self, imp=None):
+        if imp == None:
+            code = int(self.dev.query('INPZ?'))
+            if code == 0:
+                return '50'
+            elif code == 1:
+                return 'HIZ'
+            else:
+                raise
+            
         if imp == '50':
             self.dev.write('INPZ 0')
         elif imp.upper() == 'HIZ':
             self.dev.write('INPZ 1')
         else:
             raise RuntimeError("Unknown coupling {}, only '50' (50 Ohm) or 'HIZ' (1 Mohm) allowed".format(imp))
+            
     
-    def set_reserve(self, res):
-        """Available options are 'high', 'normal' and 'low'."""
+    def wide_reserve(self, res=None):
+        """Select or get wide reserve, before the mixer.\n Unless something overloads, LOW is preferred. \n
+        Available options are 'HIGH', 'NORMAL' and 'LOW'. Input 'None' to get reserve."""
         reserves = {'HIGH': 0, 'NORMAL': 1, 'LOW': 2}
-        try:
-            self.dev.write("WRSV {}".format(reserves[res.upper()]))
-        except KeyError:
-            print("Only 'high', 'normal' and 'low' reserves are available.")
+        reserves_inverse = {0:'HIGH', 1:'NORMAL', 2:'LOW'}
+        if res == None:
+            return reserves_inverse[int(self.dev.query('WRSV?'))]
+        else:
+            try:
+                self.dev.write("WRSV {}".format(reserves[res.upper()]))
+            except KeyError:
+                print("Only 'HIGH', 'NORMAL' and 'LOW'  reserves are available.")
             raise
     
-    def set_reference(self, ref):
+    def close_reserve(self, res):
+        """Select or get close reserve, after the mixer and before analog to digital conversion.\n Unless something overloads, LOW is preferred. \n
+        Available options are 'HIGH', 'NORMAL' and 'LOW'. Input 'None' to get reserve."""
+        reserves = {'HIGH': 0, 'NORMAL': 1, 'LOW': 2}
+        reserves_inverse = {0:'HIGH', 1:'NORMAL', 2:'LOW'}
+        if res == None:
+            return reserves_inverse[int(self.dev.query('CRSV?'))]
+        else:
+            try:
+                self.dev.write("CRSV {}".format(reserves[res.upper()]))
+            except KeyError:
+                print("Only 'HIGH', 'NORMAL' and 'LOW'  reserves are available.")
+            raise
+    
+    def reference(self, ref):
         if ref=='external':
             self.dev.write('FMOD 0') # external reference
         elif ref=='internal':
             self.dev.write('FMOD 1') # internal reference
+        elif ref == None:
+            code = float(self.dev.query('FMOD?'))
+            if code == 0:
+                return 'external'
+            elif code == 1:
+                return 'internal'
         else:
             raise RuntimeError("bad reference option: {}".format(ref))
+            
+
         
     def harmonic(self, harm=None):
+        """
+        Set or get harmonic.\n
+        Allowed values: 1, 2, None. \n
+        1, 2 for first and second harmonic, respectively. \n
+        'None' returns the harmonic value.\n
+        """
         if harm is None:
-            return int(self.dev.query('HARM?'))
+            return int(self.dev.query('HARM?')) + 1
         else:
-            self.dev.write('HARM {}'.format(harm))
+            if harm in [1,2]:
+                harm -= 1
+                self.dev.write('HARM {}'.format(harm))
+            else:
+                raise RuntimeError('Bad harmonic option {}'.format(harm))
+                
     
     def set_timeconstant(self, tc):
-        # print("Setting tc")
         self.dev.write("OFLT {}".format(time_constants[tc]))
-        # print("OK")
+
+    def get_timeconstant(self):
+        return tcs[int(self.dev.query('OFLT?'))]
     
     def set_sensitivity(self, sens):
         self.dev.write("SENS {}".format(sensitivities[sens]))
@@ -132,6 +180,9 @@ class SR844(Instrument):
     def set_slope(self, slope):
         self.dev.write("OFSL {}".format(lpfslopes[slope]))
         
+    def get_slope(self,slope):
+        return fslps[int(self.dev.query('OFSL?'))]
+        
     def set_output_amplitude(self, A):
         self.dev.write("SLVL {:.3f}".format(A))
     
@@ -144,6 +195,9 @@ class SR844(Instrument):
     
     def get_frequency(self):
         return float(self.dev.query('FREQ?'))
+    
+    def get_chop_frequency(self):
+        return float(self.dev.query('FRIQ?'))
     
     def get_xy(self):
         resp = self.dev.query("SNAP? 1,2")
@@ -165,4 +219,13 @@ class SR844(Instrument):
         filtro = bool(status & (1 << 1))
         outputo = bool(status & (1 << 2))
         return (inputo or filtro or outputo)
+    
+    def get_settings(self):
+        """
+        Return the device settings as a dictionary.
+        """
+        timeconstant = self.get_timeconstant
+        
+        
+        return
     
