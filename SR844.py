@@ -115,7 +115,7 @@ class SR844(Instrument):
                 print("Only 'HIGH', 'NORMAL' and 'LOW'  reserves are available.")
             raise
     
-    def close_reserve(self, res=None):
+    def close_reserve(self, res):
         """Select or get close reserve, after the mixer and before analog to digital conversion.\n Unless something overloads, LOW is preferred. \n
         Available options are 'HIGH', 'NORMAL' and 'LOW'. Input 'None' to get reserve."""
         reserves = {'HIGH': 0, 'NORMAL': 1, 'LOW': 2}
@@ -129,7 +129,7 @@ class SR844(Instrument):
                 print("Only 'HIGH', 'NORMAL' and 'LOW'  reserves are available.")
             raise
     
-    def reference(self, ref=None):
+    def reference(self, ref):
         if ref=='external':
             self.dev.write('FMOD 0') # external reference
         elif ref=='internal':
@@ -180,7 +180,7 @@ class SR844(Instrument):
     def set_slope(self, slope):
         self.dev.write("OFSL {}".format(lpfslopes[slope]))
         
-    def get_slope(self):
+    def get_slope(self,slope):
         return fslps[int(self.dev.query('OFSL?'))]
         
     def set_output_amplitude(self, A):
@@ -224,17 +224,7 @@ class SR844(Instrument):
         """
         Return the device settings as a dictionary.
         """
-        impedance = self.input_impedance()
-        wide_reserve = self.wide_reserve()
         timeconstant = self.get_timeconstant
-        slope = self.get_slope()
-        close_reserve = self.close_reserve()
-        sens = self.get_sensitivity()
-        offset = self.
-        phase = self.phase()
-        reference = self.reference()
-        harmonic = self.harmonic()
-        
         
         
         return
