@@ -222,7 +222,12 @@ class SR844(Instrument):
     
     def get_settings(self):
         """
-        Return the device settings as a dictionary.
+        Return the device settings as a dictionary. \n
+        
+        ---------------------------------------
+        
+        Included features: Input impedance, wide reserve, time constant,\n
+        filter slope, close reserve, sensitivity, phase, reference mode, harmonic
         """
         impedance = self.input_impedance()
         wide_reserve = self.wide_reserve()
@@ -230,12 +235,13 @@ class SR844(Instrument):
         slope = self.get_slope()
         close_reserve = self.close_reserve()
         sens = self.get_sensitivity()
-        offset = self.
         phase = self.phase()
         reference = self.reference()
         harmonic = self.harmonic()
         
         
         
-        return
+        return {'Input impedance':impedance,'Wide reserve':wide_reserve,'Time constant (s)':timeconstant,
+                'Filter slope (dB)':slope,'Close reserve':close_reserve,'Sensitivity (V)':sens,
+                'Phase (deg)':phase,'Referece':reference,'Harmonic':harmonic}
     
