@@ -18,9 +18,9 @@ class Instrument:
         self.access_mode = access_mode
         match access_mode:
             case 'shared':
-                self.dev = rm.open_resource(address, access_mode=visa.constants.AccessModes.shared_lock)
+                self.dev = rm.open_resource(address, access_mode=visa.constants.AccessModes.shared_lock, **kwargs)
             case 'exclusive':
-                self.dev = rm.open_resource(address)
+                self.dev = rm.open_resource(address, **kwargs)
             case 'socket':
                 self.dev = InstrumentClient(address, **kwargs)
         self.locked = False
