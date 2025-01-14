@@ -12,17 +12,17 @@ from .InstrumentClient import InstrumentClient
 import pickle
 
 class Instrument:
-    def __init__(self, rm, address, access_mode='exclusive'):
+    def __init__(self, rm, address, access_mode='exclusive', **kwargs):
         self.rm = rm
         self.address = address
         self.access_mode = access_mode
         match access_mode:
             case 'shared':
-                self.dev = rm.open_resource(address, access_mode=visa.constants.AccessModes.shared_lock)
+                self.dev = rm.open_resource(address, access_mode=visa.constants.AccessModes.shared_lock, **kwargs)
             case 'exclusive':
-                self.dev = rm.open_resource(address)
+                self.dev = rm.open_resource(address, **kwargs)
             case 'socket':
-                self.dev = InstrumentClient(address)
+                self.dev = InstrumentClient(address, **kwargs)
         self.locked = False
     
     def configure(self, conf):
