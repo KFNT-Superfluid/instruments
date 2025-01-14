@@ -12,7 +12,7 @@ from .InstrumentClient import InstrumentClient
 import pickle
 
 class Instrument:
-    def __init__(self, rm, address, access_mode='exclusive', **kwargs):
+    def __init__(self, rm, address, access_mode='exclusive'):
         self.rm = rm
         self.address = address
         self.access_mode = access_mode
@@ -22,7 +22,7 @@ class Instrument:
             case 'exclusive':
                 self.dev = rm.open_resource(address)
             case 'socket':
-                self.dev = InstrumentClient(address, **kwargs)
+                self.dev = InstrumentClient(address)
         self.locked = False
     
     def configure(self, conf):
