@@ -64,15 +64,31 @@ class SR844(Instrument):
     def auto_gain(self):
         self.dev.write('AGAN')
     
-    def offset_expandq(self, channel):
+    def get_offset_expand(self, channel):
+        """
+        Parameters
+        ----------
+        channel : int
+            1 : CH1
+            2 : CH2
+
+        Returns
+        -------
+        offset : float
+            percent of full scale of display variable
+        expand : int
+            expand of offsetted display variable
+        """
         expands = {0: 1, 1: 10, 2: 100}
-        resp = self.dev.query('DEXP? {}'.format(channels[channel]))
-        off_str, exp_str = resp.split(',')
-        offset = float(off_str)
+        exp_str = self.dev.query('DEXP? {},0'.format(channel))
+        offset = float(self.dev.query('DOFF? {},0'.format(channel)))
         expand = expands[int(exp_str)]
         return offset, expand
     
-    def offset_expand(self, channel, expand=1, offset='auto'):
+    def set_offset_expand(self, channel, expand=1, offset='auto'):
+        """
+        right now sets only the expand of the channel
+        """
         if offset == 'auto':
             self.auto_offset(channel)
             offset, _ = self.offset_expandq(channel)
@@ -231,14 +247,16 @@ class SR844(Instrument):
         """
         impedance = self.input_impedance()
         wide_reserve = self.wide_reserve()
-        timeconstant = self.get_timeconstant
+        timeconstant = self.get_timeconstant()
         slope = self.get_slope()
         close_reserve = self.close_reserve()
         sens = self.get_sensitivity()
         phase = self.phase()
         reference = self.reference()
         harmonic = self.harmonic()
-        
+        offs1,exp2 = self.get_offset_expand(1)
+        offs2,exp2 = self.get_offset_expand(2)
+        print(offs1)
         
         
         return {'Input impedance':impedance,'Wide reserve':wide_reserve,'Time constant (s)':timeconstant,
