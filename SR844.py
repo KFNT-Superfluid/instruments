@@ -236,6 +236,26 @@ class SR844(Instrument):
         outputo = bool(status & (1 << 2))
         return (inputo or filtro or outputo)
     
+    def set_display(self,channel,display):
+        self.dev.write()
+        
+    def get_analog_output_settings(self):
+        codex = self.dev.query('')
+        
+        return 
+    
+    def get_aux_input(self,input_number):
+        if input_number in [1,2]:
+            return self.dev.query('DEXP? {}'.format(input_number))
+        else:
+            raise RuntimeError('Invalid number "{}"'.format(input_number))
+    
+    def get_ratio_settings(self):
+        settings = ['Off','div by AuxIn1','div by AuxIn2']
+        code = self.dev.query('DRAT?')
+        return settings[code]
+    
+        
     def get_settings(self):
         """
         Return the device settings as a dictionary. \n
