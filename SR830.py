@@ -320,11 +320,12 @@ class SR830(Instrument):
     
     def buffer_shot(self,sample_rate:str,N:int,debug:bool=False):
         """
-        Measure full buffer in shot mode, with given sample rate.
-        X and Y points are measured at the same time. \n
+        Measure buffer in shot mode, with given sample rate. SR830 saves data from
+        CH1 and CH2 DISPLAY and stores them into the internal buffer. \n
+        CH1 and CH2 display points are measured at the same time. 
+        IMPORTANT: MAKE SURE LOCKIN DISPLAY IS SET TO CORRECT QUANTITY. \n
         While buffer data are transfered to PC, data transfer from other
         lockins is locked.
-
         
         Parameters
         ----------
@@ -353,11 +354,11 @@ class SR830(Instrument):
             print progress
         Returns
         -------
-        X : numpy array
-            measured X points
-        Y : numpy array
-            measured Y points
-        """
+        CH1 : numpy array
+            measured CH1 display points
+        CH2 : numpy array
+            measured CH2 display points
+        """ 
         try:
             i = sample_rates[sample_rate]
         except:
@@ -403,11 +404,11 @@ class SR830(Instrument):
             self.dev.write('REST')
             raise Exception(f'Could not extract buffer data\nError: {e}')
         
-        X = np.array(X_buffer)
-        Y = np.array(Y_buffer)
+        CH1 = np.array(X_buffer)
+        CH2 = np.array(Y_buffer)
         self.dev.write('REST')
     
-        return X,Y
+        return CH1,CH2
         
             
             
