@@ -134,7 +134,7 @@ class SR830(Instrument):
             self.dev.write('FMOD 0') # external reference
         elif ref=='internal':
             self.dev.write('FMOD 1') # internal reference
-         elif ref == None:
+        elif ref == None:
             pass
         else:
             raise RuntimeError("bad reference option: {}".format(ref))
@@ -143,6 +143,18 @@ class SR830(Instrument):
             return 'external'
         elif code == 1:
             return 'internal'
+    
+    def get_reference_settings(self):
+        """
+        TODO read the reference waveform settings
+        """
+        return
+    
+    def get_signal_input(self):
+        """
+        TODO read signal input settings
+        """
+        return
         
     def harmonic(self, harm=None):
         """
@@ -215,7 +227,13 @@ class SR830(Instrument):
 
     def get_slope(self):
         return fslps[int(self.dev.query('OFSL?'))]
-        
+
+    def get_line_filter(self):
+        """
+        TODO add notch filter settings
+        """
+        return
+     
     def set_output_amplitude(self, A):
         self.dev.write("SLVL {:.3f}".format(A))
     
@@ -250,51 +268,34 @@ class SR830(Instrument):
         outputo = bool(status & (1 << 2))
         return (inputo or filtro or outputo)
 
-    def set_display_x(self,  display:str):
+    def set_display(self, channel:int,  display:str):
         """
-        TODO merge with set y
-        Set display value on X channel.
+        Set display value on channel.
         ----------
-        display : select quantity (int)
-            X   \n
-            R    \n
-            X noise  \n
-            AUX in 1  \n
-            AUX in 2   \n
+        channel : lockin channel\n
+        display : quantity to display \n
+            channel == 1:
+                'X', 'R', 'X noise', 'AUX in 1', 'AUX in 2' 
+            channel == 1:
+                'Y', 'Theta', 'Y noise', 'AUX in 3', 'AUX in 4'
         -----------
         
         Important function, because data buffer saves display values       
         """
 
         try:
-            i = x_display.index(display)
+            if channel == 1:
+                i = x_display.index(display)
+            elif channel == 2:
+                i = y_display.index(display)
+            else:
+                raise KeyError("Invalid value '{}' of 'channel'".format(channel))
         except:
-            raise KeyError("Invalid value of 'display'")
+            raise KeyError("Invalid value '{}' of 'display'".format(display))
             
-        self.dev.write("DDEF {:d}, {:d}, 0".format(1, i))
+        self.dev.write("DDEF {:d}, {:d}, 0".format(channel, i))
 
         
-    def set_display_y(self,  display:str):
-        """
-        TODO merge with set x
-        Set display value on Y channel.
-        ----------
-        display : select quantity (int)
-            Y   \n
-            Theta    \n
-            Y noise  \n
-            AUX in 3  \n
-            AUX in 4   \n
-        -----------
-        
-        Important function, because data buffer saves display values       
-        """
-        try:
-            i = y_display.index(display)
-        except:
-            raise KeyError("Invalid value of 'display'")
-            
-        self.dev.write("DDEF {:d}, {:d}, 0".format(2, i))
 
             
     
@@ -316,6 +317,18 @@ class SR830(Instrument):
         display1 = self.dev.query("DDEF? 1")
         display2 = self.dev.query("DDEF? 2")
         return x_display[int(display1[0])],y_display[int(display2[0])]
+    
+    def get_analog_output_settings(self):
+        codesx = ['Display','X']
+        codesy = ['Display','Y']
+        codex = int(self.dev.query('FPOP? 1'))
+        codey = int(self.dev.query('FPOP? 2'))
+        return codesx[codex],codesy[codey]
+    
+    def get_ratio_settings(self):
+        settings = ['Off','div by AuxIn1','div by AuxIn2']
+        code = int(self.dev.query('DRAT?'))
+        return settings[code]
     
     def buffer_shot(self,sample_rate:str,N:int,debug:bool=False):
         """
