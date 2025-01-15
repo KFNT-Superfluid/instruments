@@ -80,7 +80,7 @@ class SR830(Instrument):
     def auto_gain(self):
         self.dev.write('AGAN')
     
-    def offset_expandq(self, channel):
+    def get_offset_expand(self, channel):
         expands = {0: 1, 1: 10, 2: 100}
         resp = self.dev.query('OEXP? {}'.format(channels[channel]))
         off_str, exp_str = resp.split(',')
@@ -88,7 +88,7 @@ class SR830(Instrument):
         expand = expands[int(exp_str)]
         return offset, expand
     
-    def offset_expand(self, channel, expand=1, offset='auto'):
+    def set_offset_expand(self, channel, expand=1, offset='auto'):
         if offset == 'auto':
             self.auto_offset(channel)
             offset, _ = self.offset_expandq(channel)
@@ -107,14 +107,17 @@ class SR830(Instrument):
         else:
             self.dev.write('AUXV {}, {}'.format(n,U))
     
-    def coupling(self, cpl):
+    def coupling(self, cpl=None):
         """Sets the coupling to 'AC' or 'DC'."""
         if cpl.upper() == 'AC':
             self.dev.write('ICPL 0')
         elif cpl.upper() == 'DC':
             self.dev.write('ICPL 1')
+        elif cpl == None:
+               pass
         else:
             raise RuntimeError("Unknown coupling {}, only DC or AC allowed".format(cpl))
+        return self.dev.query('ICPL?')
     
     def set_reserve(self, res):
         """Available options are 'high', 'normal' and 'low'."""
@@ -131,8 +134,15 @@ class SR830(Instrument):
             self.dev.write('FMOD 0') # external reference
         elif ref=='internal':
             self.dev.write('FMOD 1') # internal reference
+         elif ref == None:
+            pass
         else:
             raise RuntimeError("bad reference option: {}".format(ref))
+        code = float(self.dev.query('FMOD?'))
+        if code == 0:
+            return 'external'
+        elif code == 1:
+            return 'internal'
         
     def harmonic(self, harm=None):
         """
@@ -146,13 +156,14 @@ class SR830(Instrument):
         Returns
         -------
         int
-            The harmonic set on the instrument. Does not return anything if harm is a number.
+            The harmonic set on the instrument.
         """
         if harm is None:
-            return int(self.dev.query('HARM?'))
+            pass
         else:
             self.dev.write('HARM {}'.format(harm))
-    
+        return int(self.dev.query('HARM?'))
+           
     def set_timeconstant(self, tc):
         """
         Sets the time constant
@@ -171,7 +182,10 @@ class SR830(Instrument):
         # print("Setting tc")
         self.dev.write("OFLT {}".format(time_constants[tc]))
         # print("OK")
-    
+
+    def get_timeconstant(self):
+        return tcs[int(self.dev.query('OFLT?'))]
+           
     def set_sensitivity(self, sens):
         """
         Sets the sensitivity.
@@ -198,6 +212,9 @@ class SR830(Instrument):
     def set_slope(self, slope):
         """ Set the low-pass filter slope. Options are '6', '12', '18', '24'."""
         self.dev.write("OFSL {}".format(lpfslopes[slope]))
+
+    def get_slope(self):
+        return fslps[int(self.dev.query('OFSL?'))]
         
     def set_output_amplitude(self, A):
         self.dev.write("SLVL {:.3f}".format(A))
@@ -235,6 +252,7 @@ class SR830(Instrument):
 
     def set_display_x(self,  display:str):
         """
+        TODO merge with set y
         Set display value on X channel.
         ----------
         display : select quantity (int)
@@ -258,6 +276,7 @@ class SR830(Instrument):
         
     def set_display_y(self,  display:str):
         """
+        TODO merge with set x
         Set display value on Y channel.
         ----------
         display : select quantity (int)
@@ -278,30 +297,10 @@ class SR830(Instrument):
         self.dev.write("DDEF {:d}, {:d}, 0".format(2, i))
 
             
-            
-
-    def get_display_x(self):
-        """
-        Get display value on X channel.
-        ----------
-        Returns
-        ----------
-        display :  (int)
-            0 : X  \n
-            1 : R    \n
-            2 : X noise  \n
-            3 : AUX in 1  \n
-            4 : AUX in 2   \n
-        -----------
-        Important function, because data buffer saves display values       
-        """
-
-        display = self.dev.query("DDEF? {:d}".format(1))
-        return x_display[int(display[0])]
     
-    def get_display_y(self):
+    def get_display(self):
         """
-        Get display value on X channel.
+        Get display value on CH1 and CH2.
         ----------
         Returns
         ----------
@@ -314,9 +313,9 @@ class SR830(Instrument):
         -----------
         Important function, because data buffer saves display values       
         """
-
-        display = self.dev.query("DDEF? {:d}".format(2))
-        return y_display[int(display[0])]
+        display1 = self.dev.query("DDEF? 1")
+        display2 = self.dev.query("DDEF? 2")
+        return x_display[int(display1[0])],y_display[int(display2[0])]
     
     def buffer_shot(self,sample_rate:str,N:int,debug:bool=False):
         """
@@ -409,6 +408,10 @@ class SR830(Instrument):
         self.dev.write('REST')
     
         return CH1,CH2
+    def get_settings(self):
+        
+        return {}
+
         
             
             
