@@ -42,12 +42,13 @@ def find_best_sens(val):
 channels = {'X': 1, 'Y': 2, 'R': 3}
 
 class SR844(Instrument):
-    """Stanford SR830 lockin."""
+    """Stanford SR844 lockin."""
     
     def __init__(self, rm, address):
         super().__init__(rm, address)
         self.sensitivities = sensitivities
         self.sensitivities_r = sensitivities_r
+        self.dev.clear()
         
     def phase(self, phi=None):
         if phi is None:
@@ -95,9 +96,6 @@ class SR844(Instrument):
         expands = {1: 0, 10: 1, 100: 2}
         command = "OEXP {}, {}, {}".format(channels[channel], offset, expands[expand])
         self.dev.write(command)
-        
-    def get_aux(self, n):
-        return float(self.dev.query('AUXI? {}'.format(n)))
     
     def input_impedance(self, imp=None):
         if imp == None:
@@ -159,7 +157,15 @@ class SR844(Instrument):
         else:
             raise RuntimeError("bad reference option: {}".format(ref))
             
-
+    def ref_impedance(self,imp = None):
+        ref_imp_settings={'50':0,'10k':1}
+        if imp in ['50','10k']:
+            self.dev.write('REFZ {}'.format(ref_imp_settings[imp]))
+        elif imp == None:
+            pass
+        else:
+            raise RuntimeError('Invalid value of imp: "{}"'.format(imp))
+        return list(ref_imp_settings.keys())[int(self.dev.query('REFZ?'))]
         
     def harmonic(self, harm=None):
         """
@@ -168,15 +174,14 @@ class SR844(Instrument):
         1, 2 for first and second harmonic, respectively. \n
         'None' returns the harmonic value.\n
         """
-        if harm is None:
-            return int(self.dev.query('HARM?')) + 1
-        else:
-            if harm in [1,2]:
+        if harm == None:
+            pass
+        elif harm in [1,2]:
                 harm -= 1
-                self.dev.write('HARM {}'.format(harm))
-            else:
+                self.dev.write('HARM {}'.format(harm))        
+        else:
                 raise RuntimeError('Bad harmonic option {}'.format(harm))
-                
+        return int(self.dev.query('HARM?')) + 1        
     
     def set_timeconstant(self, tc):
         self.dev.write("OFLT {}".format(time_constants[tc]))
@@ -239,20 +244,29 @@ class SR844(Instrument):
     def set_display(self,channel,display):
         self.dev.write()
         
-    def get_analog_output_settings(self):
-        codex = self.dev.query('')
+    def get_display(self):
+        codesx = ['X',r'R[V]',r'R[dbm]','Xn','AuxIn1']
+        codesy = ['Y','Theta','Yn',r'Yn[dbm]','AuxIn2']
+        codex = int(self.dev.query('DDEF? 1'))
+        codey = int(self.dev.query('DDEF? 2'))
+        return codesx[codex],codesy[codey]
         
-        return 
+    def get_analog_output_settings(self):
+        codesx = ['Display','X']
+        codesy = ['Display','Y']
+        codex = int(self.dev.query('FPOP? 1'))
+        codey = int(self.dev.query('FPOP? 2'))
+        return codesx[codex],codesy[codey]
     
     def get_aux_input(self,input_number):
         if input_number in [1,2]:
-            return self.dev.query('DEXP? {}'.format(input_number))
+            return float(self.dev.query('AUXI? {}'.format(input_number)))
         else:
             raise RuntimeError('Invalid number "{}"'.format(input_number))
     
     def get_ratio_settings(self):
         settings = ['Off','div by AuxIn1','div by AuxIn2']
-        code = self.dev.query('DRAT?')
+        code = int(self.dev.query('DRAT?'))
         return settings[code]
     
         
@@ -265,6 +279,7 @@ class SR844(Instrument):
         Included features: Input impedance, wide reserve, time constant,\n
         filter slope, close reserve, sensitivity, phase, reference mode, harmonic
         """
+        self.dev.clear()
         impedance = self.input_impedance()
         wide_reserve = self.wide_reserve()
         timeconstant = self.get_timeconstant()
@@ -274,12 +289,17 @@ class SR844(Instrument):
         phase = self.phase()
         reference = self.reference()
         harmonic = self.harmonic()
-        offs1,exp2 = self.get_offset_expand(1)
+        reference_impedance = self.ref_impedance()
+        offs1,exp1 = self.get_offset_expand(1)
         offs2,exp2 = self.get_offset_expand(2)
-        print(offs1)
-        
+        disp1,disp2 = self.get_display()
+        analog_outp1,analog_outp2 = self.get_analog_output_settings()
+        aux_ratio = self.get_ratio_settings()
         
         return {'Input impedance':impedance,'Wide reserve':wide_reserve,'Time constant (s)':timeconstant,
                 'Filter slope (dB)':slope,'Close reserve':close_reserve,'Sensitivity (V)':sens,
-                'Phase (deg)':phase,'Referece':reference,'Harmonic':harmonic}
+                'Phase (deg)':phase,'Referece':reference,'Ref impedance':reference_impedance,
+                'Harmonic':harmonic,'CH1 expand':exp1,'CH2 expand':exp2,'X offset (percent)':offs1,
+                'Y offset (percent)':offs2,'CH1 display':disp1,'CH2 display':disp2,'Aux ratio settings':aux_ratio,
+                'CH1 analog output':analog_outp1,'CH2 analog output':analog_outp2}
     

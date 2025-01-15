@@ -20,7 +20,7 @@ import sys
 sys.path.append('C:/Software')
 
 from instruments.SR844 import SR844
-from instruments.Rigol_DG import Rigol_DG
+# from instruments.Rigol_DG import Rigol_DG
 
 
 def res(f, A, f0, w, phi, b1, b2):
@@ -34,18 +34,19 @@ def phase(f, A, f0, w, phi, b1, b2):
 
 
 rm = visa.ResourceManager()
-
+ 
 
 try:
-    lockin = SR844(rm, 'GPIB0::1::INSTR')
-    print(lockin.harmonic(1))
-    print(lockin.get_settings())               
+    lockin = SR844(rm, 'GPIB0::8::INSTR')
+    # print(lockin.harmonic(2))
+    print( *[str(x) + '\t' + str(lockin.get_settings()[x]) +'\n' for x in lockin.get_settings()])    
+    # print( lockin.dev.query('HARM?') )
+    # print( lockin.dev.query('*IDN?') )
 finally:
-    pass
 
-    # lockin.close()
+    lockin.close()
 
-    # rm.close()
+    rm.close()
         
         
 
