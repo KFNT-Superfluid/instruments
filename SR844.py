@@ -105,8 +105,7 @@ class SR844(Instrument):
             elif code == 1:
                 return 'HIZ'
             else:
-                raise
-            
+                raise    
         if imp == '50':
             self.dev.write('INPZ 0')
         elif imp.upper() == 'HIZ':
@@ -148,14 +147,15 @@ class SR844(Instrument):
             self.dev.write('FMOD 0') # external reference
         elif ref=='internal':
             self.dev.write('FMOD 1') # internal reference
-        elif ref == None:
-            code = float(self.dev.query('FMOD?'))
-            if code == 0:
-                return 'external'
-            elif code == 1:
-                return 'internal'
+         elif ref == None:
+            pass
         else:
             raise RuntimeError("bad reference option: {}".format(ref))
+        code = float(self.dev.query('FMOD?'))
+        if code == 0:
+            return 'external'
+        elif code == 1:
+            return 'internal'
             
     def ref_impedance(self,imp = None):
         ref_imp_settings={'50':0,'10k':1}
@@ -242,6 +242,9 @@ class SR844(Instrument):
         return (inputo or filtro or outputo)
     
     def set_display(self,channel,display):
+        """
+        TODO write
+        """
         self.dev.write()
         
     def get_display(self):
