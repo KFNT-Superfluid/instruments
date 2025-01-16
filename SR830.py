@@ -67,9 +67,12 @@ class SR830(Instrument):
     def phase(self, phi=None):
         """ Sets or queries the phase in degree."""
         if phi is None:
-            return float(self.dev.query('PHAS?'))
-        else:
+            pass
+        elif phi <= 729.99 and phi >= -360:
             self.dev.write('PHAS {:.3f}'.format(phi))
+        else:
+            raise RuntimeError('"phi" needs to be a number between -360 and 729.99 or "None", not "{}"'.format(phi))
+        return float(self.dev.query('PHAS?'))
     
     def auto_phase(self):
         self.dev.write('APHS')
@@ -107,28 +110,23 @@ class SR830(Instrument):
         else:
             self.dev.write('AUXV {}, {}'.format(n,U))
     
-    def coupling(self, cpl=None):
-        """Sets the coupling to 'AC' or 'DC'."""
-        if cpl.upper() == 'AC':
-            self.dev.write('ICPL 0')
-        elif cpl.upper() == 'DC':
-            self.dev.write('ICPL 1')
-        elif cpl == None:
-               pass
-        else:
-            raise RuntimeError("Unknown coupling {}, only DC or AC allowed".format(cpl))
-        return self.dev.query('ICPL?')
+
     
-    def set_reserve(self, res):
-        """Available options are 'high', 'normal' and 'low'."""
-        reserves = {'HIGH': 0, 'NORMAL': 1, 'LOW': 2}
-        try:
-            self.dev.write("RMOD {}".format(reserves[res.upper()]))
-        except KeyError:
-            print("Only 'high', 'normal' and 'low' reserves are available.")
-            raise
+    def reserve(self, res=None):
+        """Available options are None, 'HIGH', 'NORMAL' and 'LOW'.
+        Returns reserve, None option does does not set anything.
+        
+        """
+        reserves = ['HIGH','NORMAL','LOW']
+        if res in reserves:
+            self.dev.write("RMOD {}".format(reserves.index(res)))
+        elif not res == None:
+            print("Invalid value of 'res' supplied: '{}'".format(res))
+        code = int(self.dev.query('RMOD?'))
+        return reserves[code]
+
     
-    def set_reference(self, ref):
+    def reference(self, ref=None):
         """ Sets the reference to 'external' or 'internal'."""
         if ref=='external':
             self.dev.write('FMOD 0') # external reference
@@ -137,24 +135,42 @@ class SR830(Instrument):
         elif ref == None:
             pass
         else:
-            raise RuntimeError("bad reference option: {}".format(ref))
-        code = float(self.dev.query('FMOD?'))
+            raise RuntimeError("Bad reference option: {}".format(ref))
+        code = int(self.dev.query('FMOD?'))
         if code == 0:
             return 'external'
         elif code == 1:
             return 'internal'
     
-    def get_reference_settings(self):
+    def reference_trigger(self,trigger = None):
         """
-        TODO read the reference waveform settings
+        Read and optionally set the reference trigger option. \n
+        Options:
+            None : Read the value only
+            
+            'Sine' : Set Sine and read
+            
+            'Pos edge' : Set Pos edge and read
+            
+            'Neg edge' : Set Neg edge and read
         """
-        return
+        codes = ['Sine','Pos edge','Neg edge']
+        if trigger == None:
+            pass
+        elif trigger in codes:
+            self.dev.write('RSLP {}'.format(codes.index(trigger)))  
+        else:
+            raise RuntimeError('Invalid value of "trigger" supplied: "{}"'.format(trigger))
+        code = int(self.dev.query('RSLP?'))
+        return codes[code]
     
     def get_signal_input(self):
         """
-        TODO read signal input settings
+        Read signal input configuration
         """
-        return
+        codes = ['A','A-B','I (1 MOhm)','I (100 MOhm']
+        code = int(self.dev.query('ISRC?'))
+        return codes[code]
         
     def harmonic(self, harm=None):
         """
@@ -175,7 +191,79 @@ class SR830(Instrument):
         else:
             self.dev.write('HARM {}'.format(harm))
         return int(self.dev.query('HARM?'))
-           
+    
+    def input_shield(self,grounding=None):
+        """
+        Read and optionally set the input shield coupling. \n
+        Options:
+            None : Read the value only
+            
+            'Float' : Set Float and read
+            
+            'Ground' : Set Ground and read
+            
+        """
+        codes = ['Float','Ground']
+        if grounding == None:
+            pass
+        elif grounding in codes:
+            self.dev.write('IGND {}'.format(codes.index(grounding)))
+        else:
+            raise RuntimeError('Invalid value of "grounding" supplied: {}'.format(grounding))
+        code = int(self.dev.query('IGND?'))
+        return codes[code]
+    
+    def coupling(self, cpl=None):
+        """Sets the coupling to 'AC' or 'DC'."""
+        codes = ['AC','DC']
+        if cpl == 'AC':
+            self.dev.write('ICPL 0')
+        elif cpl == 'DC':
+            self.dev.write('ICPL 1')
+        elif cpl == None:
+               pass
+        else:
+            raise RuntimeError("Unknown coupling {}, only DC or AC allowed".format(cpl))
+        return codes[int(self.dev.query('ICPL?'))]
+    
+    def line_filter(self,line = None):
+        """
+        Read and optionally set the line filter. \n
+        Options:
+            None : Read the value only
+            
+            'No filter', '1x line', '2x line', 'Both' : Set and read
+        """
+        codes = ['No filter','1x line','2x line','Both']
+        if line == None:
+            pass
+        elif line in codes:
+            self.dev.write('ILIN {}'.format(codes.index(line)))
+        else:
+            raise RuntimeError('Invalid value of "line" supplied: {}'.format(line))
+        code = int(self.dev.query('ILIN?'))
+        return codes[code]
+    
+    def sync(self,sync = None):
+        """
+        Read and optionally set the sync. \n
+        Options:
+            None : Read the value only
+            
+            'On', 'Off' : Set and read value
+        """
+        codes = ['Off','On']
+        if sync == None:
+            pass
+        elif sync in codes:
+            self.dev.write('SYNC {}'.format(codes.index(sync)))
+        else:
+            raise RuntimeError('Invalid value of "sync" supplied: {}'.format(sync))
+        code = int(self.dev.query('SYNC?'))
+        return codes[code]
+    
+    
+    
     def set_timeconstant(self, tc):
         """
         Sets the time constant
@@ -228,11 +316,7 @@ class SR830(Instrument):
     def get_slope(self):
         return fslps[int(self.dev.query('OFSL?'))]
 
-    def get_line_filter(self):
-        """
-        TODO add notch filter settings
-        """
-        return
+
      
     def set_output_amplitude(self, A):
         self.dev.write("SLVL {:.3f}".format(A))
@@ -325,19 +409,20 @@ class SR830(Instrument):
         codey = int(self.dev.query('FPOP? 2'))
         return codesx[codex],codesy[codey]
     
-    def get_ratio_settings(self):
-        settings = ['Off','div by AuxIn1','div by AuxIn2']
-        code = int(self.dev.query('DRAT?'))
-        return settings[code]
+    def get_ratio_settings(self,channel:int):
+        settings=[ ['Off','div by AuxIn1','div by AuxIn2'],['Off','div by AuxIn3','div by AuxIn4']]
+        
+        code = int(self.dev.query('DDEF? {}'.format(channel)).split(',')[1])
+        return settings[channel-1][code]
     
     def buffer_shot(self,sample_rate:str,N:int,debug:bool=False):
         """
         Measure buffer in shot mode, with given sample rate. SR830 saves data from
         CH1 and CH2 DISPLAY and stores them into the internal buffer. \n
-        CH1 and CH2 display points are measured at the same time. 
+        CH1 and CH2 display points are measured at the same time. \n
         IMPORTANT: MAKE SURE LOCKIN DISPLAY IS SET TO CORRECT QUANTITY. \n
         While buffer data are transfered to PC, data transfer from other
-        lockins is locked.
+        lockins is locked, but it is advised to have only one console using this function at any given time.
         
         Parameters
         ----------
@@ -421,9 +506,44 @@ class SR830(Instrument):
         self.dev.write('REST')
     
         return CH1,CH2
+    
     def get_settings(self):
+        """
+        Return the device settings as a dictionary. \n
         
-        return {}
+        ---------------------------------------
+        
+        Included features: Input impedance, reserve, time constant,\n
+        filter slope, sensitivity, phase, reference mode, harmonic and more
+        """
+        self.dev.clear()
+        signal_input = self.get_signal_input()
+        coupling = self.coupling()
+        reserve = self.reserve()
+        line_filter = self.line_filter()
+        sync = self.sync()
+        timeconstant = self.get_timeconstant()
+        slope = self.get_slope()
+        sens = self.get_sensitivity()
+        phase = self.phase()
+        reference = self.reference()
+        ref_trigger = self.reference_trigger()
+        harmonic = self.harmonic()
+        offsX,expX = self.get_offset_expand('X')
+        offsY,expY = self.get_offset_expand('Y')
+        offsR,expR = self.get_offset_expand('R')
+        disp1,disp2 = self.get_display()
+        analog_outp1,analog_outp2 = self.get_analog_output_settings()
+        aux_ratio1 = self.get_ratio_settings(1)
+        aux_ratio2 = self.get_ratio_settings(2)
+        
+        return {'Signal input':signal_input,'Reserve':reserve,'Time constant (s)':timeconstant,
+                'Filter slope (dB)':slope,'Sensitivity (V)':sens,'Coupling':coupling,'Line filter':line_filter,
+                'Sync':sync,'Ref trigger':ref_trigger ,'Phase (deg)':phase,'Referece':reference,
+                'Harmonic':harmonic,'X expand':expX,'Y expand':expY, 'R expand':expR, 'X offset (percent)':offsX,
+                'Y offset (percent)':offsY,'R offset (percent)':offsR ,'CH1 display':disp1,'CH2 display':disp2,
+                'CH1 Aux ratio settings':aux_ratio1,'CH2 Aux ratio settings':aux_ratio2,
+                'CH1 analog output':analog_outp1,'CH2 analog output':analog_outp2}
 
         
             

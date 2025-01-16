@@ -147,7 +147,7 @@ class SR844(Instrument):
             self.dev.write('FMOD 0') # external reference
         elif ref=='internal':
             self.dev.write('FMOD 1') # internal reference
-         elif ref == None:
+        elif ref == None:
             pass
         else:
             raise RuntimeError("bad reference option: {}".format(ref))
