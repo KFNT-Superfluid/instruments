@@ -22,7 +22,7 @@ try:
     lockin = SR830(rm, 'GPIB0::1::INSTR')
     settings = lockin.get_settings()
     print( *[str(x) + ':\t' + str(settings[x]) +'\n' for x in settings])    
-
+    print()
 finally:
     lockin.close()
     rm.close()
