@@ -161,4 +161,21 @@ class KS33210A(Instrument):
             self.dev.write(':burst:state off')
     def trig(self):
         self.dev.write('TRIG')
+
+    def output_load(self,Z=None):
+        if Z>=1 and Z<=10_000:
+            self.dev.write('OUTP:LOAD {}'.format(Z))
+        elif not Z == None:
+            raise RuntimeError('Invalid value of "Z" supplied: "{}"'.format(Z))
+        load = int(self.dev.query('OUTP:LOAD ?'))
+        return load
+        
+
+    def get_settings(self):
+        
+        return
+
+
+
+
         

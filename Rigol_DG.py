@@ -12,9 +12,6 @@ from .Instrument import Instrument
 class Rigol_DG(Instrument):
     """Rigol DG series signal generator.   
     """
-    
-
-    
     def __init__(self, rm, address, Z='inf', initialize_state=True,default_channel = 'CH1', **kwargs):
         super().__init__(rm, address, **kwargs)
 
@@ -205,4 +202,6 @@ TODO?
         self.dev.write(f'TRIG{channel }')
         
 
+    def get_settings(self):
         
+        return
