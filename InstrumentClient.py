@@ -14,13 +14,13 @@ import logging as log
 import pickle
 
 class InstrumentClient:
-    def __init__(self, visa_addr, address='localhost', port=None, port_filename='instrument_server_port.txt'):
+    def __init__(self, visa_addr, remote_address='localhost', port=None, port_filename='instrument_server_port.txt'):
         self.visa_addr = visa_addr
 
         if port is None:
             with open(os.path.join(tempfile.gettempdir(), port_filename), 'r') as port_file:
                 port = int(port_file.readline())
-        self.address = (address, port)
+        self.address = (remote_address, port)
         self.connection = Client(self.address) #open conncetion to the server
         self.open() #open the instrument on the server
     
