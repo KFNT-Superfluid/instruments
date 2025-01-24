@@ -96,10 +96,9 @@ class KS33210A(Instrument):
        
     
     def output(self, state=None):
-        codes = ['OFF','ON']
         if state is None:
             resp = self.dev.query('OUTP?')
-            return codes[int(resp)]
+            return bool(resp)
         if self.output_amplitude >= 0.02:
             toggled = self.output_state ^ state
             self.dev.write("OUTP {}".format('ON' if state else 'OFF'))
