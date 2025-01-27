@@ -15,6 +15,12 @@ class Keithley(Instrument):
     
     def __init__ (self, rm, address, **kwargs):
         super().__init__(rm, address, **kwargs)
+        self.previously_applied = {
+            1: [None, None],
+            2: [None, None],
+            3: [None, None]
+        }
+        self.default_channel = "CH1"
         
     def channel(self, channel):
         '''
@@ -29,13 +35,26 @@ class Keithley(Instrument):
         self.dev.write(command)
         sleep(1)
         ch = self.dev.query('INST:SEL?')
+        self.default_channel = channel
         return ch
-        
+    
+    def apply(self, channel, voltage=None, current=None):
+        if voltage is None:
+            voltage = self.previously_applied[channel][0]
+        if current is None:
+            current = self.previously_applied[channel][1]
+        if voltage is None or current is None:
+            raise ValueError("Both current and voltage need to specified at least once.")
+        command = f"APPL CH{channel:d}, {voltage}, {current}"
+        self.dev.write(command)
+        self.previously_applied[channel][0] = voltage
+        self.previously_applied[channel][1] = current
+
     def setvoltage(self, volt):
         command = 'VOLT {:.3f}V'.format(volt)
         self.dev.write(command)
         
-    def getvoltage(self):
+    def getvoltage(self, channel='CH1'):
         command = 'FETC:VOLT?'
         set_volt = self.dev.query(command)
         return float(set_volt)

@@ -315,8 +315,6 @@ class SR830(Instrument):
 
     def get_slope(self):
         return fslps[int(self.dev.query('OFSL?'))]
-
-
      
     def set_output_amplitude(self, A):
         self.dev.write("SLVL {:.3f}".format(A))
@@ -379,10 +377,6 @@ class SR830(Instrument):
             
         self.dev.write("DDEF {:d}, {:d}, 0".format(channel, i))
 
-        
-
-            
-    
     def get_display(self):
         """
         Get display value on CH1 and CH2.
@@ -504,6 +498,8 @@ class SR830(Instrument):
         CH1 = np.array(X_buffer)
         CH2 = np.array(Y_buffer)
         self.dev.write('REST')
+        self.buffer_X = X_buffer
+        self.buffer_Y = Y_buffer
     
         return CH1,CH2
     
