@@ -358,7 +358,7 @@ class SR830(Instrument):
         display : quantity to display \n
             channel == 1:
                 'X', 'R', 'X noise', 'AUX in 1', 'AUX in 2' 
-            channel == 1:
+            channel == 2:
                 'Y', 'Theta', 'Y noise', 'AUX in 3', 'AUX in 4'
         -----------
         
@@ -540,7 +540,3 @@ class SR830(Instrument):
                 'Y offset (percent)':offsY,'R offset (percent)':offsR ,'CH1 display':disp1,'CH2 display':disp2,
                 'CH1 Aux ratio settings':aux_ratio1,'CH2 Aux ratio settings':aux_ratio2,
                 'CH1 analog output':analog_outp1,'CH2 analog output':analog_outp2}
-
-        
-            
-            

@@ -73,18 +73,22 @@ class KS33210A(Instrument):
             self.dev.write("TRIG:SOUR IMM")
             self.dev.write("SWE:STAT OFF")
         
-    def amplitude_modulation(self, enable, depth):
+    def amplitude_modulation(self, enable, depth=None):
         """Specify the modulation depth in percent in the range 0 -- 120"""
         if enable:
+            if depth is None:
+                raise ValueError("Must supply detph.")
             self.dev.write("AM:STAT ON")
             self.dev.write("AM:SOUR EXT")
             self.dev.write("AM:DEPTH {:.4f}".format(depth))
         else:
             self.dev.write("AM:STAT OFF")
         
-    def amplitude_modulation_int(self, enable, depth):
+    def amplitude_modulation_int(self, enable, depth=None):
         """Specify the modulation depth in percent in the range 0 -- 120"""
         if enable:
+            if depth is None:
+                raise ValueError("Must supply detph.")
             self.dev.write("AM:STAT ON")
             self.dev.write("AM:SOUR INT")
             self.dev.write("AM:DEPTH {:.4f}".format(depth))
