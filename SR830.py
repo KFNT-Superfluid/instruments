@@ -168,9 +168,17 @@ class SR830(Instrument):
         """
         Read signal input configuration
         """
-        codes = ['A','A-B','I (1 MOhm)','I (100 MOhm']
+        codes = ['A','A-B','I (1 MOhm)','I (100 MOhm)']
         code = int(self.dev.query('ISRC?'))
         return codes[code]
+    
+    def set_signal_input(self, input):
+        """
+        Read signal input configuration
+        """
+        codes = ['A','A-B','I (1 MOhm)','I (100 MOhm)']
+        code = codes.index(input)
+        self.dev.write(f'ISRC {code}')
         
     def harmonic(self, harm=None):
         """
