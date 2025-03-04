@@ -127,11 +127,34 @@ class DAQcard:
     def write_scalar(self, value):
         self.write_task.write(value, auto_start=True)
         self.write_task.stop()
+    
+    #trigger additions local
+    def read(self):
+        data = self.task.read(nidaqmx.constants.READ_ALL_AVAILABLE, timeout=self.timeout)
+        return np.array(data)
+    
+    def set_trigger(self, channel):
+        self.task.triggers.start_trigger.cfg_anlg_edge_start_trig(rf"{self.name}/{channel}")
+    
+    
+    def set_samples(self, samples):
+        self.samples = samples
+        self.timeout = 1.1*self.samples/self.rate
+        self.task.timing.cfg_samp_clk_timing(rate=self.rate, samps_per_chan=self.samples,
+                                             sample_mode=nidaqmx.constants.AcquisitionType.FINITE)
+    
+    def set_rate(self, rate):
+        self.rate = rate
+        self.timeout = 1.1*self.samples/self.rate
+        self.task.timing.cfg_samp_clk_timing(rate=self.rate, samps_per_chan=self.samples,
+                                             sample_mode=nidaqmx.constants.AcquisitionType.FINITE)
+        
 
 if __name__ == '__main__':  
     try:        
-        daq = DAQcard(channels=['ai1'], rate=100, samples=100,
-                      terminal_config='DIFF')
+        daq = DAQcard(channels=['ai0', 'ai1'], rate=100, samples=100,
+                      terminal_config='RSE')
+        
         data = daq.measure()
     finally:
         daq.close()

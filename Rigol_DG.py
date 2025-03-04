@@ -81,17 +81,20 @@ class Rigol_DG(Instrument):
             return self.dev.query(f":SOUR{channel}:FREQ?")
     
     def frequency_sweep(self, enable, fi=None, ff=None, t=None, channel = None):
+        channel = self.parse_channel(channel)
+        pref = f':SOUR{channel}:'
         if enable:
-            self.dev.write("FREQ:STAR {:.3f}".format(fi))
-            self.dev.write("FREQ:STOP {:.3f}".format(ff))
-            self.dev.write("SWE:SPAC LIN")
-            self.dev.write("SWE:TIME {:.3f}".format(t))
-            self.dev.write("TRIG:SOUR EXT")
-            self.dev.write("TRIG:SLOP POS")
-            self.dev.write("SWE:STAT ON")
+            self.dev.write(pref+"FREQ:STAR {:.3f}".format(fi))
+            self.dev.write(pref+"FREQ:STOP {:.3f}".format(ff))
+            self.dev.write(pref+"SWE:SPAC LIN")
+            self.dev.write(pref+"SWE:TIME {:.3f}".format(t))
+            # self.dev.write("TRIG:SOUR EXT")
+            self.dev.write(pref+"TRIG:SOUR MAN")
+            self.dev.write(pref+"TRIG:SLOP POS")
+            self.dev.write(pref+"SWE:STAT ON")
         else:
-            self.dev.write("TRIG:SOUR IMM")
-            self.dev.write("SWE:STAT OFF")
+            self.dev.write(pref+"TRIG:SOUR IMM")
+            self.dev.write(pref+"SWE:STAT OFF")
         
     def amplitude_modulation(self, enable, depth, channel = None):
         """Specify the modulation depth in percent in the range 0 -- 120"""
@@ -200,7 +203,11 @@ TODO?
     def trig(self, channel = None):
         channel=self.parse_channel(channel)
         self.dev.write(f'TRIG{channel }')
-        
+    
+    def trig_sweep(self, channel = None):
+        channel=self.parse_channel(channel)
+        self.dev.write(f':SOUR{channel}:SWE:TRIG')
+        time.sleep(float(self.dev.query(f":SOUR{channel}:SWE:TIME?")))
 
     def get_settings(self):
         
