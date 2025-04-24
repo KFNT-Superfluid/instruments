@@ -16,9 +16,11 @@ from .Instrument import Instrument
 class LakeShore336(Instrument):
     def __init__ (self, rm, address, **kwargs):
         super().__init__(rm, address, **kwargs)
-        self.dev.baud_rate = 57600
-        self.dev.data_bits = 7
-        self.dev.parity = Parity.odd
+        config = {
+            'baud_rate': 57600,
+            'data_bits': 7,
+            'parity': Parity.odd}
+        self.configure(config)
         self.calibration = {}
     
     def add_calibration(self, channel, file):

@@ -44,8 +44,8 @@ channels = {'X': 1, 'Y': 2, 'R': 3}
 class SR844(Instrument):
     """Stanford SR844 lockin."""
     
-    def __init__(self, rm, address):
-        super().__init__(rm, address)
+    def __init__(self, rm, address, **kwargs):
+        super().__init__(rm, address, **kwargs)
         self.sensitivities = sensitivities
         self.sensitivities_r = sensitivities_r
         self.dev.clear()
