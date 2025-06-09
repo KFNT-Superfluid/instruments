@@ -57,8 +57,9 @@ class KS33210A(Instrument):
     def frequency(self, freq=None):
         if freq is not None:
             self.dev.write("FREQ {:.9f}".format(freq))
+            return freq
         else:
-            return self.dev.query("FREQ?")
+            return float(self.dev.query("FREQ?"))
     
     def frequency_sweep(self, enable, fi=None, ff=None, t=None):
         if enable:

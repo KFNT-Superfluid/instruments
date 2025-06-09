@@ -293,6 +293,9 @@ class SR830(Instrument):
 
     def get_timeconstant(self):
         return tcs[int(self.dev.query('OFLT?'))]
+    
+    def get_drive(self):
+        return self.dev.query('SLVL?')
            
     def set_sensitivity(self, sens):
         """
@@ -540,6 +543,7 @@ class SR830(Instrument):
         analog_outp1,analog_outp2 = self.get_analog_output_settings()
         aux_ratio1 = self.get_ratio_settings(1)
         aux_ratio2 = self.get_ratio_settings(2)
+        amp = self.get_drive()
         
         return {'Signal input':signal_input,'Reserve':reserve,'Time constant (s)':timeconstant,
                 'Filter slope (dB)':slope,'Sensitivity (V)':sens,'Coupling':coupling,'Line filter':line_filter,
@@ -547,4 +551,4 @@ class SR830(Instrument):
                 'Harmonic':harmonic,'X expand':expX,'Y expand':expY, 'R expand':expR, 'X offset (percent)':offsX,
                 'Y offset (percent)':offsY,'R offset (percent)':offsR ,'CH1 display':disp1,'CH2 display':disp2,
                 'CH1 Aux ratio settings':aux_ratio1,'CH2 Aux ratio settings':aux_ratio2,
-                'CH1 analog output':analog_outp1,'CH2 analog output':analog_outp2}
+                'CH1 analog output':analog_outp1,'CH2 analog output':analog_outp2,'Sine output amplitude (Vrms)': amp}
