@@ -28,7 +28,7 @@ class Keithley(Instrument):
         ----------
         channel : string
         
-        choose outup channel: CH1, CH2, CH3
+        choose output channel: CH1, CH2, CH3
 
         '''
         command = f'INST:SEL {channel}'
