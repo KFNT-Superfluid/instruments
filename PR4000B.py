@@ -9,7 +9,7 @@ from .Instrument import Instrument
 import pyvisa as vi
 
 class PR4000B(Instrument):
-    def __init__(self, rm, address, **kwargs):
+    def __init__(self, rm, address, channel=1, **kwargs):
         super().__init__(rm, address, **kwargs)
         self.configure({'read_termination': '\r',
                         'write_termination': '\r',
@@ -22,13 +22,19 @@ class PR4000B(Instrument):
         self.dev.query('RS,ON')
         self.dev.query('SM1,0')
         self.other = None
+        self.channel = channel
         
     def set_relative(self, other, unit = 'Pa'):
         self.other = other
         self.other_unit = unit
         
-    def readP(self):
-        resp = self.dev.query('AV1')
+    def readP(self, ch=None):
+        if ch is None:
+            resp = self.dev.query(f'AV{self.channel}')
+        elif ch in [1,2]:
+            resp = self.dev.query(f'AV{ch}')
+        else:
+            raise KeyError('Allowed values of int:"ch" are 1 or 2')
         self.Pressure = float(resp)
         
         if self.other:

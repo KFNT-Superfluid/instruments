@@ -210,5 +210,26 @@ TODO?
         time.sleep(float(self.dev.query(f":SOUR{channel}:SWE:TIME?")))
 
     def get_settings(self):
+        """
+        TODO
+        
+
+        Returns
+        -------
+        None.
+        """
         
         return
+    
+    def reference_clock(self, source=None):
+        if source is None:
+            return self.dev.query(':SYST:ROSC:SOUR?')
+        elif source in ['INT', 'EXT']:
+            self.dev.write(f':SYST:ROSC:SOUR {source}')
+        else:
+            raise KeyError('Invalid value of "source". Available options are "INT", "EXT" or None')
+        
+        
+        
+        
+    

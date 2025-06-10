@@ -39,6 +39,11 @@ class Keysight_DMM(Instrument):
         self.dev.write('CONF:VOLT:DC')
         self.dev.write('TRIG:SOUR IMM')
         self.dev.write('INIT')
+            
+    def setup_current(self):
+        self.dev.write('CONF:CURR:DC')
+        self.dev.write('TRIG:SOUR IMM')
+        self.dev.write('INIT')
     
     def get_value(self):
         resp = self.dev.query('MEAS?')
