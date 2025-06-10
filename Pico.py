@@ -10,8 +10,8 @@ from .Instrument import Instrument
 import numpy as np
 
 class Pico(Instrument):
-    def __init__(self, rm, addr, access_mode='exclusive'):
-        super().__init__(rm, addr, access_mode)
+    def __init__(self, rm, addr, **kwargs):
+        super().__init__(rm, addr, **kwargs)
         
         self.configure({'read_termination': '\n',
                         'write_termination': '\n'})

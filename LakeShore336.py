@@ -56,7 +56,6 @@ class LakeShore336(Instrument):
             do_softcal=True
             unit = 'S'
         command = f'{unit}RDG? {channel}'
-        print("Sending command: ", command)
         resp = float(self.dev.query(command))
         if do_softcal:
             T = self.calibration[channel](resp).item()
