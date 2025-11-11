@@ -40,6 +40,11 @@ class Rigol_DG(Instrument):
         
     def function(self, function, channel = None):
         self.dev.write(":SOUR{}:FUNC {}".format(channel,function.upper()))
+    
+    def phase(self, phase, channel=None):
+        _ch = self.default_channel if channel is None else channel
+        _chn = self.parse_channel(_ch)
+        self.dev.write(f':SOUR{_chn}:PHAS {phase:.4f}')
 
     def amplitude(self, value=None, unit=None, channel = None):
         """Availale units are VPP, VRMS and DBM
@@ -64,6 +69,24 @@ class Rigol_DG(Instrument):
                 return 0
             return float(self.dev.query(f":SOUR{channel}:VOLT?"))
     
+    def offset(self, value=None, unit=None, channel = None):
+        """
+        Available channels are CH1 and CH2
+        """
+        
+        channel = self.parse_channel(channel)
+        
+        if unit is not None:
+            self.dev.write(f':SOUR{channel}:VOLT:UNIT {unit}')
+        
+        if value is not None:
+            self.dev.write(":SOUR{}:VOLT:LEV:OFFS {:.4f}".format(channel,value))
+
+        else:
+            if self.output_amplitude < 0.01:
+                return 0
+            return float(self.dev.query(f":SOUR{channel}:VOLT?"))
+    
     def lolevel(self, value, channel = None):
         channel = self.parse_channel(channel)
         self.dev.write(":SOUR{}VOLT:LOW {:.4f}".format(channel,value))
@@ -80,7 +103,7 @@ class Rigol_DG(Instrument):
         else:
             return self.dev.query(f":SOUR{channel}:FREQ?")
     
-    def frequency_sweep(self, enable, fi=None, ff=None, t=None, channel = None):
+    def frequency_sweep(self, enable, fi=None, ff=None, t=None, channel = None, extTrig=False):
         channel = self.parse_channel(channel)
         pref = f':SOUR{channel}:'
         if enable:
@@ -88,9 +111,12 @@ class Rigol_DG(Instrument):
             self.dev.write(pref+"FREQ:STOP {:.3f}".format(ff))
             self.dev.write(pref+"SWE:SPAC LIN")
             self.dev.write(pref+"SWE:TIME {:.3f}".format(t))
-            # self.dev.write("TRIG:SOUR EXT")
-            self.dev.write(pref+"TRIG:SOUR MAN")
-            self.dev.write(pref+"TRIG:SLOP POS")
+            if extTrig:
+                print(pref+"TRIG:SOUR EXT")
+                self.dev.write(pref+"SWE:TRIG:SOUR EXT")
+            else:
+                self.dev.write(pref+"SWE:TRIG:SOUR MAN")
+            self.dev.write(pref+"SWE:TRIG:SLOP POS")
             self.dev.write(pref+"SWE:STAT ON")
         else:
             self.dev.write(pref+"TRIG:SOUR IMM")
@@ -207,7 +233,7 @@ TODO?
     def trig_sweep(self, channel = None):
         channel=self.parse_channel(channel)
         self.dev.write(f':SOUR{channel}:SWE:TRIG')
-        time.sleep(float(self.dev.query(f":SOUR{channel}:SWE:TIME?")))
+        time.sleep(float(self.dev.query(f":SOUR{channel}:SWE:TIME?"))*1.2)
 
     def get_settings(self):
         """

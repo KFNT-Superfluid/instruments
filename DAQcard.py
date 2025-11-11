@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+ # -*- coding: utf-8 -*-
 """
 Created on Sat Sep 19 10:43:47 2020
 
@@ -12,7 +12,7 @@ class DAQcard:
     def __init__(self, channels=None, rate=None, samples=None, devname=None,
                  max_val=10, min_val=-10,
                  max_out=10, min_out=-10,
-                 outputs=None, timeout=None, sync=None, ext_sync=None,
+                 outputs=None, timeout=None, sync=None, ext_sync=None, write_rate=None,
                  terminal_config='NRSE'):
         self.system = nidaqmx.system.system.System()
         if devname is None:
@@ -67,6 +67,10 @@ class DAQcard:
         
         if outputs is not None:
             self.write_task = nidaqmx.Task(new_task_name='WriteTask')
+            if write_rate is not None:
+                self.write_rate = write_rate
+            else:
+                self.write_rate = rate
             if isinstance(outputs[0], tuple):
                 to_write = []
                 for ao, data in outputs:
@@ -75,7 +79,7 @@ class DAQcard:
                                                                     min_val=min_out, max_val=max_out)
                     to_write.append(data)
                     
-                self.write_task.timing.cfg_samp_clk_timing(rate=rate, samps_per_chan=len(data),
+                self.write_task.timing.cfg_samp_clk_timing(self.write_rate, samps_per_chan=len(data),
                                                            sample_mode=nidaqmx.constants.AcquisitionType.FINITE)
                 if len(to_write) == 1:
                     to_write = to_write[0]
@@ -117,6 +121,7 @@ class DAQcard:
         self.task.stop()
         self.write_task.stop()
         return np.array(data)
+        
     
     def measure(self):
         self.start() #this also starts the writing if configured

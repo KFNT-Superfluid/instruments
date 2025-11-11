@@ -306,3 +306,14 @@ class SR844(Instrument):
                 'Y offset (percent)':offs2,'CH1 display':disp1,'CH2 display':disp2,'Aux ratio settings':aux_ratio,
                 'CH1 analog output':analog_outp1,'CH2 analog output':analog_outp2}
     
+    def query_unlock(self):
+        """
+        Query lockin reference unlock, True if unlocked, False if locked
+
+        Returns
+        -------
+        TYPE
+            bool
+
+        """
+        return bool(int(self.dev.query('LIAS? 0')))
