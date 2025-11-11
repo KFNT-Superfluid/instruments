@@ -149,10 +149,13 @@ class VISAInstruments:
             setattr(self.instruments[addr].dev, attr, conf[attr])
         
     def write(self, addr: str, msg: str):
-        self.instruments[addr].dev.write(msg)
+        with self.global_visa_lock:
+            self.instruments[addr].dev.write(msg)
     
     def read(self, addr: str) -> str:
-        return self.instruments[addr].dev.read()
+        with self.global_visa_lock:
+            resp = self.instruments[addr].dev.read()
+        return resp
     
     def query(self, addr:str, msg: str) -> str:
         with self.global_visa_lock:
