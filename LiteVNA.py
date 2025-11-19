@@ -285,7 +285,7 @@ class LiteVNA:
         # We'll poll, but a simple sleep is easier to start.
         # A 101-point sweep is fast, but let's be safe.
         # TODO: A more robust method would be to poll the FIFO or calculate sweep time.
-        time.sleep(0.25) # A guess, adjust as needed.
+        time.sleep(1) # A guess, adjust as needed.
         
         # 3. Read all points from the FIFO
         try:
@@ -294,7 +294,7 @@ class LiteVNA:
             print(f"Warning: {e}. Retrying after a longer delay.")
             time.sleep(0.5) # Longer delay
             self._clear_fifo() # Clear again
-            time.sleep(0.5) # Wait for new sweep
+            time.sleep(2) # Wait for new sweep
             raw_data = self._read_fifo(self.num_points)
         
         # 4. Parse the raw data
@@ -312,7 +312,7 @@ if __name__ == "__main__":
     # On Linux, it might be '/dev/ttyACM0'
     # On macOS, it might be '/dev/cu.usbmodem...'
     
-    VNA_PORT = '/dev/ttyACM2' # <-- **** CHANGE THIS TO YOUR PORT ****
+    VNA_PORT = 'COM5' # <-- **** CHANGE THIS TO YOUR PORT ****
 
     t0 = time.time()
     ts = []
@@ -325,9 +325,9 @@ if __name__ == "__main__":
             print(f"Connected to LiteVNA, Firmware: {version}")
             
             # 2. Configure Sweep
-            start_f = int(5.07e9)
-            stop_f = int(5.11e9)
-            points = 51
+            start_f = int(5.15e9)
+            stop_f = int(5.35e9)
+            points = 201
             
             vna.set_channels(s11=True, s21=True)
             vna.set_frequency_range(start_f, stop_f, points)
@@ -350,8 +350,8 @@ if __name__ == "__main__":
             
             print(f"\n--- Sweep Results (Read {len(frequencies)} points) ---")
 
-            s11_db = [20 * math.log10(abs(s)) for s in s11]
-            s11_phase = np.unwrap(np.angle(s11))
+            s11_db = [20 * math.log10(abs(s)) for s in s21]
+            s11_phase = np.unwrap(np.angle(s21))
             s11_phase -= s11_phase.mean()
             
             absS11_plot = ax_logmagS11.plot(frequencies, s11_db, 'o')
@@ -373,8 +373,8 @@ if __name__ == "__main__":
 
             def update(frame):
                 frequencies, s11, s21 = vna.read_sweep()
-                s11_db = [20 * math.log10(abs(s)) for s in s11]
-                s11_phase = np.unwrap(np.angle(s11))
+                s11_db = [20 * math.log10(abs(s)) for s in s21]
+                s11_phase = np.unwrap(np.angle(s21))
                 s11_phase -= s11_phase.mean()
                 absS11_plot[0].set_data(frequencies, s11_db)
                 phaseS11_plot[0].set_data(frequencies, s11_phase)
