@@ -44,7 +44,7 @@ class Rigol_DG(Instrument):
     def phase(self, phase, channel=None):
         _ch = self.default_channel if channel is None else channel
         _chn = self.parse_channel(_ch)
-        self.dev.write(f':SOUR{_chn}:PHAS {phase:.4f}')
+        self.dev.write(f':SOUR{_chn}:PHAS {phase%360:.4f}')
 
     def amplitude(self, value=None, unit=None, channel = None):
         """Availale units are VPP, VRMS and DBM
@@ -100,6 +100,7 @@ class Rigol_DG(Instrument):
         
         if freq is not None:
             self.dev.write(":SOUR{}:FREQ {:.9f}".format(channel,freq))
+            self.align_phase()
         else:
             return self.dev.query(f":SOUR{channel}:FREQ?")
     
@@ -256,8 +257,23 @@ TODO?
             raise KeyError('Invalid value of "source". Available options are "INT", "EXT" or None')
     
     
-        
-        
+    def phase_coupling(self, state=None):
+        if state is None:
+            resp = self.dev.query(':COUP:PHAS?')
+            return True if resp == 'ON\n' else False
+        elif state == True:
+            self.dev.write(f":COUP:PHAS ON")
+            return True
+        elif state == False:
+            self.dev.write(f":COUP:PHAS OFF")
+            return False
+        else:
+            raise RuntimeError("Incorrect use of phase_coupling: state needs to be None, True or False")
+    
+    def align_phase(self):
+        # self.dev.write(":SOUR1:PHAS:INIT")
+        # self.dev.write(":SOUR2:PHAS:INIT")
+        self.dev.write(":PHAS:INIT")
         
         
     
