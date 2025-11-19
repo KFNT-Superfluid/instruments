@@ -254,6 +254,8 @@ TODO?
             self.dev.write(f':SYST:ROSC:SOUR {source}')
         else:
             raise KeyError('Invalid value of "source". Available options are "INT", "EXT" or None')
+    
+    
         
         
         
