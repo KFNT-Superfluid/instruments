@@ -94,7 +94,7 @@ class SR830(Instrument):
     def set_offset_expand(self, channel, expand=1, offset='auto'):
         if offset == 'auto':
             self.auto_offset(channel)
-            offset, _ = self.offset_expandq(channel)
+            offset, _ = self.get_offset_expand(channel)
         expands = {1: 0, 10: 1, 100: 2}
         command = "OEXP {}, {}, {}".format(channels[channel], offset, expands[expand])
         self.dev.write(command)
